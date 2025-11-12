@@ -28,7 +28,7 @@ export function Counter({ className }: CounterProps) {
     }
   };
 
-  // Buscar counter inicial
+  // Fetch initial counter
   const fetchCounter = useCallback(async () => {
     setLoading(true);
     try {
@@ -36,18 +36,18 @@ export function Counter({ className }: CounterProps) {
       if (response.success) {
         setCounter(response.data.count);
         setLastUpdated(response.data.lastUpdated);
-        showFeedback('Counter carregado com sucesso!');
+        showFeedback('Counter loaded successfully!');
       } else {
         showFeedback(response.message, true);
       }
     } catch {
-      showFeedback('Erro ao carregar counter', true);
+      showFeedback('Error loading counter', true);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Incrementar counter
+  // Increment counter
   const handleIncrement = async () => {
     setLoading(true);
     try {
@@ -55,18 +55,18 @@ export function Counter({ className }: CounterProps) {
       if (response.success) {
         setCounter(response.data.count);
         setLastUpdated(response.data.lastUpdated);
-        showFeedback('Counter incrementado!');
+        showFeedback('Counter incremented!');
       } else {
         showFeedback(response.message, true);
       }
     } catch {
-      showFeedback('Erro ao incrementar counter', true);
+      showFeedback('Error incrementing counter', true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Decrementar counter
+  // Decrement counter
   const handleDecrement = async () => {
     setLoading(true);
     try {
@@ -74,12 +74,12 @@ export function Counter({ className }: CounterProps) {
       if (response.success) {
         setCounter(response.data.count);
         setLastUpdated(response.data.lastUpdated);
-        showFeedback('Counter decrementado!');
+        showFeedback('Counter decremented!');
       } else {
         showFeedback(response.message, true);
       }
     } catch {
-      showFeedback('Erro ao decrementar counter', true);
+      showFeedback('Error decrementing counter', true);
     } finally {
       setLoading(false);
     }
@@ -93,18 +93,18 @@ export function Counter({ className }: CounterProps) {
       if (response.success) {
         setCounter(response.data.count);
         setLastUpdated(response.data.lastUpdated);
-        showFeedback('Counter resetado!');
+        showFeedback('Counter reset!');
       } else {
         showFeedback(response.message, true);
       }
     } catch {
-      showFeedback('Erro ao resetar counter', true);
+      showFeedback('Error resetting counter', true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Carregar counter ao montar o componente
+  // Load counter when component mounts
   useEffect(() => {
     fetchCounter();
   }, [fetchCounter]);
@@ -121,7 +121,7 @@ export function Counter({ className }: CounterProps) {
           Counter API Test
         </h2>
         <p className="text-gray-600 dark:text-gray-300 text-sm">
-          Teste de endpoint com React + Vite + Tailwind
+          Endpoint testing with React + Vite + Tailwind
         </p>
       </div>
 
@@ -136,7 +136,7 @@ export function Counter({ className }: CounterProps) {
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           {lastUpdated && (
-            <>Última atualização: {new Date(lastUpdated).toLocaleTimeString('pt-BR')}</>
+            <>Last updated: {new Date(lastUpdated).toLocaleTimeString('en-US')}</>
           )}
         </div>
       </div>
@@ -154,7 +154,7 @@ export function Counter({ className }: CounterProps) {
           )}
         >
           <MinusIcon className="w-4 h-4" />
-          Decrementar
+          Decrement
         </button>
 
         <button
@@ -168,7 +168,7 @@ export function Counter({ className }: CounterProps) {
           )}
         >
           <PlusIcon className="w-4 h-4" />
-          Incrementar
+          Increment
         </button>
       </div>
 
