@@ -6,7 +6,7 @@ import { WorkoutsScreen } from './components/WorkoutsScreen';
 import { WeeklyScheduleScreen } from './components/WeeklyScheduleScreen';
 import { WorkoutExecutionScreen } from './components/WorkoutExecutionScreen';
 import { ExerciseExecutionScreen } from './components/ExerciseExecutionScreen';
-import type { Exercise, Workout, WorkoutCompletion, ExerciseCompletion } from './types/workout';
+import { Exercise, Workout, WorkoutCompletion, ExerciseCompletion } from './types/workout';
 import {
   getUser,
   saveUser,
@@ -26,7 +26,7 @@ type Screen =
   | { type: 'workout-execution'; workoutId: string }
   | { type: 'exercise-execution'; workoutId: string; exerciseId: string };
 
-function App() {
+export default function App() {
   const [user, setUser] = useState<string | null>(null);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
@@ -199,7 +199,7 @@ function App() {
     <div className="h-screen flex flex-col">
       <div className="bg-white border-b sticky top-0 z-10">
         <div className="max-w-screen-sm mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold">Workout Tracker</h1>
+          <h1 className="text-xl">Workout Tracker</h1>
           <Button variant="ghost" size="sm" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" />
             Logout
@@ -234,5 +234,3 @@ function App() {
     </div>
   );
 }
-
-export default App
