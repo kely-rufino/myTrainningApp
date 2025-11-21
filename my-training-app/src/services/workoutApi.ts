@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:3000/api';
 // Database response interfaces
 interface DbWorkoutExercise {
   exercise_id: string;
-  instructions: string;
+  instructions?: string;
   sets: number;
   reps: number;
   weight?: number;
@@ -14,7 +14,7 @@ interface DbWorkoutExercise {
 interface DbWorkout {
   id: string;
   name: string;
-  instructions: string;
+  instructions?: string;
   days_of_week: number[];
   exercises?: DbWorkoutExercise[];
 }

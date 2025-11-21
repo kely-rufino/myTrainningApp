@@ -6,7 +6,7 @@ export interface Exercise {
 
 export interface WorkoutExercise {
   exerciseId: string;
-  instructions: string;
+  instructions?: string;
   sets: number;
   reps: number;
   weight?: number;
@@ -15,7 +15,7 @@ export interface WorkoutExercise {
 export interface Workout {
   id: string;
   name: string;
-  instructions: string;
+  instructions?: string;
   exercises: WorkoutExercise[];
   daysOfWeek: number[]; // 0 = Sunday, 1 = Monday, etc.
 }
