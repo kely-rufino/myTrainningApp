@@ -11,13 +11,11 @@ import {
   getUser,
   saveUser,
   clearUser,
+  setCurrentUser,
   getExercises,
-  saveExercises,
   getWorkouts,
-  saveWorkouts,
   getCompletions,
-  saveCompletions,
-} from './utils/storage';
+} from './services/workoutApi';
 import { Button } from './components/ui/button';
 import { LogOut } from 'lucide-react';
 
@@ -33,20 +31,46 @@ function App() {
   const [completions, setCompletions] = useState<WorkoutCompletion[]>([]);
   const [screen, setScreen] = useState<Screen>({ type: 'tab', tab: 'schedule' });
 
-  // Load data from localStorage on mount
+  // Load data from API on mount
   useEffect(() => {
     const savedUser = getUser();
     if (savedUser) {
       setUser(savedUser);
-      setExercises(getExercises());
-      setWorkouts(getWorkouts());
-      setCompletions(getCompletions());
+      // Configure the API with the saved user before loading data
+      setCurrentUser(savedUser);
+      loadData();
     }
   }, []);
 
-  const handleLogin = (username: string) => {
-    saveUser(username);
-    setUser(username);
+  const loadData = async () => {
+    try {
+      console.log('Loading data for user...');
+      const [exercisesData, workoutsData, completionsData] = await Promise.all([
+        getExercises(),
+        getWorkouts(),
+        getCompletions(),
+      ]);
+      console.log('Data loaded:', { 
+        exercises: exercisesData.length, 
+        workouts: workoutsData.length, 
+        completions: completionsData.length 
+      });
+      setExercises(exercisesData);
+      setWorkouts(workoutsData);
+      setCompletions(completionsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
+  };
+
+  const handleLogin = async (username: string) => {
+    try {
+      saveUser(username); // Salva no localStorage e configura API
+      setUser(username);
+      await loadData(); // Carrega dados do usuário
+    } catch (error) {
+      console.error('Error during login:', error);
+    }
   };
 
   const handleLogout = () => {
@@ -59,12 +83,12 @@ function App() {
 
   const handleSaveExercises = (newExercises: Exercise[]) => {
     setExercises(newExercises);
-    saveExercises(newExercises);
+    // Exercises são salvos individualmente via API nos componentes
   };
 
   const handleSaveWorkouts = (newWorkouts: Workout[]) => {
     setWorkouts(newWorkouts);
-    saveWorkouts(newWorkouts);
+    // Workouts são salvos individualmente via API nos componentes
   };
 
   const handleWorkoutClick = (workout: Workout) => {
@@ -121,7 +145,7 @@ function App() {
     }
 
     setCompletions(updatedCompletions);
-    saveCompletions(updatedCompletions);
+    // Completions são salvos individualmente via API
   };
 
   const handleBackFromWorkout = () => {

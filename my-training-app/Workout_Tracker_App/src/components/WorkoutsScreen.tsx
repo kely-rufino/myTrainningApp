@@ -38,9 +38,12 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
     setIsFormOpen(false);
   };
 
-  const handleEdit = (workout: Workout) => {
-    const updated = workouts.map((w) => (w.id === workout.id ? workout : w));
-    onSave(updated);
+  const handleEdit = (workout: Workout | Omit<Workout, 'id'>) => {
+    // If workout has an id, it's an edit; otherwise, it's a new workout
+    if ('id' in workout) {
+      const updated = workouts.map((w) => (w.id === workout.id ? workout : w));
+      onSave(updated);
+    }
     setEditingWorkout(null);
   };
 
@@ -82,7 +85,7 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
                           {workout.instructions}
                         </p>
                       </div>
-                      <div className="flex gap-2 flex-shrink-0 ml-4">
+                      <div className="flex gap-2 shrink-0 ml-4">
                         <Button
                           variant="outline"
                           size="sm"
@@ -138,7 +141,7 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
         />
       )}
 
-      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+      <AlertDialog open={!!deletingId} onOpenChange={(open: boolean) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Workout</AlertDialogTitle>

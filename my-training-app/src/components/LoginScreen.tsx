@@ -4,16 +4,24 @@ import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 interface LoginScreenProps {
-  onLogin: (username: string) => void;
+  onLogin: (username: string) => Promise<void>;
 }
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username.trim()) {
-      onLogin(username.trim());
+    if (username.trim() && !isLoading) {
+      setIsLoading(true);
+      try {
+        await onLogin(username.trim());
+      } catch (error) {
+        console.error('Login error:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -34,8 +42,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               className="w-full"
               autoFocus
             />
-            <Button type="submit" className="w-full" disabled={!username.trim()}>
-              Start Workout
+            <Button type="submit" className="w-full" disabled={!username.trim() || isLoading}>
+              {isLoading ? 'Connecting...' : 'Start Workout'}
             </Button>
           </form>
         </CardContent>

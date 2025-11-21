@@ -4,6 +4,7 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { WorkoutFormDialog } from './WorkoutFormDialog';
+import { workoutAPI } from '../services/workoutApi';
 
 interface WorkoutsScreenProps {
   workouts: Workout[];
@@ -24,24 +25,54 @@ const DAYS = [
 export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAdd = (workout: Omit<Workout, 'id'>) => {
-    const newWorkout: Workout = {
-      ...workout,
-      id: Date.now().toString(),
-    };
-    onSave([...workouts, newWorkout]);
-    setIsFormOpen(false);
+  const handleAdd = async (workout: Omit<Workout, 'id'>) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const newWorkout: Workout = {
+        ...workout,
+        id: Date.now().toString(),
+      };
+      await workoutAPI.createWorkout(newWorkout);
+      onSave([...workouts, newWorkout]);
+      setIsFormOpen(false);
+    } catch (err) {
+      console.error('Error creating workout:', err);
+      setError('Failed to create workout: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEdit = (workout: Workout) => {
-    const updated = workouts.map((w) => (w.id === workout.id ? workout : w));
-    onSave(updated);
-    setEditingWorkout(null);
+  const handleEdit = async (workout: Workout) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await workoutAPI.updateWorkout(workout.id, workout);
+      const updated = workouts.map((w) => (w.id === workout.id ? workout : w));
+      onSave(updated);
+      setEditingWorkout(null);
+    } catch (err) {
+      setError('Failed to update workout: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    onSave(workouts.filter(w => w.id !== id));
+  const handleDelete = async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await workoutAPI.deleteWorkout(id);
+      onSave(workouts.filter(w => w.id !== id));
+    } catch (err) {
+      setError('Failed to delete workout: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getDayNames = (days: number[]) => {
@@ -59,11 +90,28 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
                 onClick={() => setIsFormOpen(true)}
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700"
+                disabled={loading}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Workout
               </Button>
             </div>
+
+            {error && (
+              <Card className="border-red-200 bg-red-50">
+                <CardContent className="p-4">
+                  <p className="text-red-600 text-sm">{error}</p>
+                  <Button 
+                    onClick={() => setError(null)} 
+                    variant="ghost" 
+                    size="sm" 
+                    className="mt-2"
+                  >
+                    Dismiss
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
 
             {workouts.length === 0 ? (
               <Card>
@@ -98,6 +146,7 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
                             variant="ghost"
                             size="sm"
                             onClick={() => setEditingWorkout(workout)}
+                            disabled={loading}
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -106,6 +155,7 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
                             size="sm"
                             className="text-red-600 hover:text-red-700"
                             onClick={() => handleDelete(workout.id)}
+                            disabled={loading}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -123,15 +173,16 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
       {/* Form Dialog for Add */}
       <WorkoutFormDialog
         open={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={(open) => !loading && setIsFormOpen(open)}
         exercises={exercises}
         onSave={handleAdd}
+        loading={loading}
       />
 
       {/* Form Dialog for Edit */}
       <WorkoutFormDialog
         open={!!editingWorkout}
-        onOpenChange={(open) => !open && setEditingWorkout(null)}
+        onOpenChange={(open) => !loading && (!open && setEditingWorkout(null))}
         workout={editingWorkout || undefined}
         exercises={exercises}
         onSave={(workout) => {
@@ -139,6 +190,7 @@ export function WorkoutsScreen({ workouts, exercises, onSave }: WorkoutsScreenPr
             handleEdit(workout);
           }
         }}
+        loading={loading}
       />
     </>
   );

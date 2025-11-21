@@ -16,6 +16,7 @@ interface WorkoutFormDialogProps {
   workout?: Workout;
   exercises: Exercise[];
   onSave: (workout: Workout | Omit<Workout, 'id'>) => void;
+  loading?: boolean;
 }
 
 const DAYS = [
@@ -34,6 +35,7 @@ export function WorkoutFormDialog({
   workout,
   exercises,
   onSave,
+  loading = false,
 }: WorkoutFormDialogProps) {
   const [name, setName] = useState('');
   const [instructions, setInstructions] = useState('');
@@ -264,11 +266,11 @@ export function WorkoutFormDialog({
           </div>
 
           <div className="border-t px-6 py-4 flex justify-end gap-2 bg-yellow-100">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!name.trim() || !instructions.trim() || daysOfWeek.length === 0}>
-              {workout ? 'Save' : 'Create'}
+            <Button type="submit" disabled={loading || !name.trim() || daysOfWeek.length === 0}>
+              {loading ? 'Saving...' : (workout ? 'Save' : 'Create')}
             </Button>
           </div>
         </form>

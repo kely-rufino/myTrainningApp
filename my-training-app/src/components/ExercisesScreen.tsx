@@ -4,6 +4,7 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { workoutAPI } from '../services/workoutApi';
 
 interface ExercisesScreenProps {
   exercises: Exercise[];
@@ -14,27 +15,56 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newExerciseName, setNewExerciseName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (newExerciseName.trim()) {
-      const newExercise: Exercise = {
-        id: Date.now().toString(),
-        name: newExerciseName.trim(),
-      };
-      onSave([...exercises, newExercise]);
-      setNewExerciseName('');
-      setIsAdding(false);
+      setLoading(true);
+      setError(null);
+      try {
+        const newExercise: Exercise = {
+          id: Date.now().toString(),
+          name: newExerciseName.trim(),
+        };
+        await workoutAPI.createExercise(newExercise);
+        onSave([...exercises, newExercise]);
+        setNewExerciseName('');
+        setIsAdding(false);
+      } catch (err) {
+        setError('Failed to create exercise: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleDelete = (id: string) => {
-    onSave(exercises.filter(e => e.id !== id));
+  const handleDelete = async (id: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await workoutAPI.deleteExercise(id);
+      onSave(exercises.filter(e => e.id !== id));
+    } catch (err) {
+      setError('Failed to delete exercise: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEdit = (id: string, newName: string) => {
+  const handleEdit = async (id: string, newName: string) => {
     if (newName.trim()) {
-      onSave(exercises.map(e => e.id === id ? { ...e, name: newName.trim() } : e));
-      setEditingId(null);
+      setLoading(true);
+      setError(null);
+      try {
+        await workoutAPI.updateExercise(id, { name: newName.trim() });
+        onSave(exercises.map(e => e.id === id ? { ...e, name: newName.trim() } : e));
+        setEditingId(null);
+      } catch (err) {
+        setError('Failed to update exercise: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -54,6 +84,22 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
             </Button>
           </div>
 
+          {error && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-4">
+                <p className="text-red-600 text-sm">{error}</p>
+                <Button 
+                  onClick={() => setError(null)} 
+                  variant="ghost" 
+                  size="sm" 
+                  className="mt-2"
+                >
+                  Dismiss
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {isAdding && (
             <Card>
               <CardContent className="p-4">
@@ -64,17 +110,20 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
                     onChange={(e) => setNewExerciseName(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
                     autoFocus
+                    disabled={loading}
                   />
-                  <Button onClick={handleAdd} size="sm">
-                    Add
+                  <Button onClick={handleAdd} size="sm" disabled={loading}>
+                    {loading ? 'Adding...' : 'Add'}
                   </Button>
                   <Button 
                     onClick={() => {
                       setIsAdding(false);
                       setNewExerciseName('');
+                      setError(null);
                     }} 
                     variant="outline" 
                     size="sm"
+                    disabled={loading}
                   >
                     Cancel
                   </Button>
@@ -107,11 +156,13 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
                           }}
                           onBlur={(e) => handleEdit(exercise.id, e.target.value)}
                           autoFocus
+                          disabled={loading}
                         />
                         <Button 
                           onClick={() => setEditingId(null)}
                           variant="outline"
                           size="sm"
+                          disabled={loading}
                         >
                           Cancel
                         </Button>
@@ -124,6 +175,7 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
                             onClick={() => setEditingId(exercise.id)}
                             variant="ghost"
                             size="sm"
+                            disabled={loading}
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -132,6 +184,7 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
                             variant="ghost"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
+                            disabled={loading}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
