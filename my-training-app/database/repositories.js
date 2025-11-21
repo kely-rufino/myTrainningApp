@@ -199,7 +199,12 @@ export class WorkoutCompletionRepository {
       INSERT INTO workout_completions (workout_id, user_id, date, completed) 
       VALUES (?, ?, ?, ?)
     `);
-    const result = stmt.run(completion.workout_id, completion.user_id, completion.date, completion.completed);
+    const result = stmt.run(
+      completion.workout_id, 
+      completion.user_id, 
+      completion.date, 
+      completion.completed ? 1 : 0
+    );
     return this.findById(result.lastInsertRowid);
   }
 
@@ -292,7 +297,7 @@ export class WorkoutCompletionRepository {
       `);
       
       sets.forEach((set, index) => {
-        setStmt.run(exerciseCompletionId, set.reps, set.weight, set.completed, index);
+        setStmt.run(exerciseCompletionId, set.reps, set.weight, set.completed ? 1 : 0, index);
       });
 
       return exerciseCompletionId;

@@ -336,6 +336,135 @@ class WorkoutAPI {
       })) || [],
     };
   }
+
+  // === WORKOUT COMPLETION CONVENIENCE METHODS ===
+  
+  /**
+   * Salva um workout como completado pelo usuário
+   */
+  async saveWorkoutCompleted(workoutId: string, exercisesCompleted?: WorkoutCompletion['exercises']): Promise<WorkoutCompletion> {
+    if (!this.username) throw new Error('No user set');
+    
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+    
+    const completion: Omit<WorkoutCompletion, 'created_at'> = {
+      workoutId,
+      date: today,
+      completed: true,
+      exercises: exercisesCompleted || []
+    };
+
+    return this.createCompletion(completion);
+  }
+
+  /**
+   * Salva o progresso de um exercício específico
+   */
+  async saveExerciseProgress(
+    workoutId: string, 
+    exerciseId: string, 
+    sets: { reps: number; weight: number; completed: boolean }[]
+  ): Promise<WorkoutCompletion> {
+    if (!this.username) throw new Error('No user set');
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Verificar se já existe uma completion para hoje
+    const existingCompletions = await this.getCompletions(today);
+    const existingCompletion = existingCompletions.find(c => c.workoutId === workoutId);
+    
+    if (existingCompletion) {
+      // Atualizar completion existente com novo progresso do exercício
+      const updatedExercises = existingCompletion.exercises || [];
+      const exerciseIndex = updatedExercises.findIndex(ex => ex.exerciseId === exerciseId);
+      
+      if (exerciseIndex >= 0) {
+        updatedExercises[exerciseIndex].sets = sets;
+      } else {
+        updatedExercises.push({ exerciseId, sets });
+      }
+      
+      // Como não temos um método de update por workoutId+date, vamos criar uma nova completion
+      // ou você pode implementar um endpoint específico no backend
+      const completion: Omit<WorkoutCompletion, 'created_at'> = {
+        workoutId,
+        date: today,
+        completed: sets.every(set => set.completed),
+        exercises: updatedExercises
+      };
+      
+      return this.createCompletion(completion);
+    } else {
+      // Criar nova completion
+      const completion: Omit<WorkoutCompletion, 'created_at'> = {
+        workoutId,
+        date: today,
+        completed: sets.every(set => set.completed),
+        exercises: [{ exerciseId, sets }]
+      };
+      
+      return this.createCompletion(completion);
+    }
+  }
+
+  /**
+   * Marca um set específico como completado
+   */
+  async markSetCompleted(
+    workoutId: string, 
+    exerciseId: string, 
+    setIndex: number, 
+    reps: number, 
+    weight: number
+  ): Promise<WorkoutCompletion> {
+    if (!this.username) throw new Error('No user set');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const existingCompletions = await this.getCompletions(today);
+    const existingCompletion = existingCompletions.find(c => c.workoutId === workoutId);
+    
+    let exercises: WorkoutCompletion['exercises'] = [];
+    
+    if (existingCompletion) {
+      exercises = [...(existingCompletion.exercises || [])];
+    }
+    
+    // Encontrar ou criar o exercício
+    let exerciseCompletion = exercises.find(ex => ex.exerciseId === exerciseId);
+    if (!exerciseCompletion) {
+      exerciseCompletion = { exerciseId, sets: [] };
+      exercises.push(exerciseCompletion);
+    }
+    
+    // Garantir que temos sets suficientes
+    while (exerciseCompletion.sets.length <= setIndex) {
+      exerciseCompletion.sets.push({ reps: 0, weight: 0, completed: false });
+    }
+    
+    // Marcar o set como completado
+    exerciseCompletion.sets[setIndex] = { reps, weight, completed: true };
+    
+    const completion: Omit<WorkoutCompletion, 'created_at'> = {
+      workoutId,
+      date: today,
+      completed: false, // Só marca como completado quando todos os exercícios estiverem prontos
+      exercises
+    };
+    
+    return this.createCompletion(completion);
+  }
+
+  /**
+   * Obtém o progresso atual de um workout para hoje
+   */
+  async getTodayWorkoutProgress(workoutId: string): Promise<WorkoutCompletion | null> {
+    if (!this.username) throw new Error('No user set');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const completions = await this.getCompletions(today);
+    
+    return completions.find(c => c.workoutId === workoutId) || null;
+  }
 }
 
 // Instância singleton da API
@@ -389,4 +518,47 @@ export const getCompletions = async (): Promise<WorkoutCompletion[]> => {
 export const saveCompletions = async (): Promise<void> => {
   // Esta função não é mais necessária pois salvamos individualmente via API
   console.warn('saveCompletions is deprecated - use workoutAPI.createCompletion instead');
+};
+
+// === FUNÇÕES DE CONVENIÊNCIA PARA SALVAR WORKOUTS COMPLETADOS ===
+
+/**
+ * Salva um workout como completado pelo usuário
+ */
+export const saveWorkoutCompleted = async (
+  workoutId: string, 
+  exercisesCompleted?: WorkoutCompletion['exercises']
+): Promise<WorkoutCompletion> => {
+  return workoutAPI.saveWorkoutCompleted(workoutId, exercisesCompleted);
+};
+
+/**
+ * Salva o progresso de um exercício específico
+ */
+export const saveExerciseProgress = async (
+  workoutId: string, 
+  exerciseId: string, 
+  sets: { reps: number; weight: number; completed: boolean }[]
+): Promise<WorkoutCompletion> => {
+  return workoutAPI.saveExerciseProgress(workoutId, exerciseId, sets);
+};
+
+/**
+ * Marca um set específico como completado
+ */
+export const markSetCompleted = async (
+  workoutId: string, 
+  exerciseId: string, 
+  setIndex: number, 
+  reps: number, 
+  weight: number
+): Promise<WorkoutCompletion> => {
+  return workoutAPI.markSetCompleted(workoutId, exerciseId, setIndex, reps, weight);
+};
+
+/**
+ * Obtém o progresso atual de um workout para hoje
+ */
+export const getTodayWorkoutProgress = async (workoutId: string): Promise<WorkoutCompletion | null> => {
+  return workoutAPI.getTodayWorkoutProgress(workoutId);
 };

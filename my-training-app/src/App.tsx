@@ -208,6 +208,7 @@ function App() {
     return (
       <div className="h-screen flex flex-col">
         <ExerciseExecutionScreen
+          workoutId={workout.id}
           exercise={exercise}
           workoutExercise={workoutExercise}
           completion={exerciseCompletion || null}

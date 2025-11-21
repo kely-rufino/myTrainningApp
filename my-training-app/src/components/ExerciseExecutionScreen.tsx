@@ -4,8 +4,10 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ArrowLeft, Check } from 'lucide-react';
+import { saveExerciseProgress } from '../services/workoutApi';
 
 interface ExerciseExecutionScreenProps {
+  workoutId: string;
   exercise: Exercise;
   workoutExercise: WorkoutExercise;
   completion: ExerciseCompletion | null;
@@ -14,6 +16,7 @@ interface ExerciseExecutionScreenProps {
 }
 
 export function ExerciseExecutionScreen({
+  workoutId,
   exercise,
   workoutExercise,
   completion,
@@ -33,23 +36,37 @@ export function ExerciseExecutionScreen({
     }));
   });
 
-  const handleSetChange = (index: number, field: 'reps' | 'weight', value: number) => {
+  const handleSetValueChange = async (index: number, field: 'reps' | 'weight', value: number) => {
     const newSets = [...sets];
     newSets[index] = { ...newSets[index], [field]: value };
     setSets(newSets);
+    
+    try {
+      // Salvar no banco de dados quando os valores mudam
+      await saveExerciseProgress(workoutId, exercise.id, newSets);
+    } catch (error) {
+      console.error('Error saving exercise progress:', error);
+    }
   };
 
-  const handleSetComplete = (index: number) => {
+  const handleSetComplete = async (index: number) => {
     const newSets = [...sets];
     newSets[index] = { ...newSets[index], completed: !newSets[index].completed };
     setSets(newSets);
     
-    // Auto-save completion
-    const exerciseCompletion: ExerciseCompletion = {
-      exerciseId: exercise.id,
-      sets: newSets,
-    };
-    onUpdateCompletion(exerciseCompletion);
+    try {
+      // Salvar no banco de dados
+      await saveExerciseProgress(workoutId, exercise.id, newSets);
+      
+      // Auto-save completion (mantido para compatibilidade)
+      const exerciseCompletion: ExerciseCompletion = {
+        exerciseId: exercise.id,
+        sets: newSets,
+      };
+      onUpdateCompletion(exerciseCompletion);
+    } catch (error) {
+      console.error('Error saving exercise progress:', error);
+    }
   };
 
   const completedSets = sets.filter(set => set.completed).length;
@@ -112,7 +129,7 @@ export function ExerciseExecutionScreen({
                       <Input
                         type="number"
                         value={set.reps}
-                        onChange={(e) => handleSetChange(index, 'reps', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleSetValueChange(index, 'reps', parseInt(e.target.value) || 0)}
                         className="w-16 h-8 text-center"
                         disabled={set.completed}
                       />
@@ -126,7 +143,7 @@ export function ExerciseExecutionScreen({
                         type="number"
                         step="0.5"
                         value={set.weight}
-                        onChange={(e) => handleSetChange(index, 'weight', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleSetValueChange(index, 'weight', parseFloat(e.target.value) || 0)}
                         className="w-16 h-8 text-center"
                         disabled={set.completed}
                       />
