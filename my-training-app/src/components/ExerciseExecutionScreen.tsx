@@ -3,7 +3,7 @@ import type { Exercise, WorkoutExercise, ExerciseCompletion, SetCompletion } fro
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, CheckCheck } from 'lucide-react';
 import { saveExerciseProgress } from '../services/workoutApi';
 
 interface ExerciseExecutionScreenProps {
@@ -69,8 +69,29 @@ export function ExerciseExecutionScreen({
     }
   };
 
+  const handleCompleteAllSets = async () => {
+    // Marcar todos os sets como completos
+    const newSets = sets.map(set => ({ ...set, completed: true }));
+    setSets(newSets);
+    
+    try {
+      // Salvar no banco de dados
+      await saveExerciseProgress(workoutId, exercise.id, newSets);
+      
+      // Auto-save completion
+      const exerciseCompletion: ExerciseCompletion = {
+        exerciseId: exercise.id,
+        sets: newSets,
+      };
+      onUpdateCompletion(exerciseCompletion);
+    } catch (error) {
+      console.error('Error saving exercise progress:', error);
+    }
+  };
+
   const completedSets = sets.filter(set => set.completed).length;
   const totalSets = sets.length;
+  const allCompleted = completedSets === totalSets && totalSets > 0;
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -86,6 +107,16 @@ export function ExerciseExecutionScreen({
               {completedSets} of {totalSets} sets completed
             </p>
           </div>
+          <Button
+            onClick={handleCompleteAllSets}
+            size="sm"
+            variant={allCompleted ? "outline" : "default"}
+            className={allCompleted ? "text-green-600 border-green-600" : "bg-green-600 hover:bg-green-700"}
+            disabled={allCompleted}
+          >
+            <CheckCheck className="w-4 h-4 mr-1" />
+            {allCompleted ? 'Done' : 'All'}
+          </Button>
         </div>
       </div>
 

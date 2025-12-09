@@ -1,7 +1,7 @@
 import type { Workout, Exercise, WorkoutCompletion } from '../types/workout';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { ArrowLeft, Play, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Play, CheckCircle2, CheckCheck } from 'lucide-react';
 
 interface WorkoutExecutionScreenProps {
   workout: Workout;
@@ -9,6 +9,7 @@ interface WorkoutExecutionScreenProps {
   completion: WorkoutCompletion | null;
   onBack: () => void;
   onExerciseClick: (exerciseId: string) => void;
+  onCompleteAll: () => void;
 }
 
 export function WorkoutExecutionScreen({
@@ -17,6 +18,7 @@ export function WorkoutExecutionScreen({
   completion,
   onBack,
   onExerciseClick,
+  onCompleteAll,
 }: WorkoutExecutionScreenProps) {
   const getExerciseName = (exerciseId: string) => {
     return exercises.find(e => e.id === exerciseId)?.name || 'Unknown Exercise';
@@ -30,6 +32,7 @@ export function WorkoutExecutionScreen({
 
   const completedCount = workout.exercises.filter(we => isExerciseCompleted(we.exerciseId)).length;
   const totalCount = workout.exercises.length;
+  const allCompleted = completedCount === totalCount && totalCount > 0;
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -45,6 +48,16 @@ export function WorkoutExecutionScreen({
               {completedCount} of {totalCount} exercises completed
             </p>
           </div>
+          <Button
+            onClick={onCompleteAll}
+            size="sm"
+            variant={allCompleted ? "outline" : "default"}
+            className={allCompleted ? "text-green-600 border-green-600" : "bg-green-600 hover:bg-green-700"}
+            disabled={allCompleted}
+          >
+            <CheckCheck className="w-4 h-4 mr-2" />
+            {allCompleted ? 'All Done' : 'Complete All'}
+          </Button>
         </div>
       </div>
 

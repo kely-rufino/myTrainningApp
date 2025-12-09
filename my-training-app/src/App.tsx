@@ -15,6 +15,7 @@ import {
   getExercises,
   getWorkouts,
   getCompletions,
+  workoutAPI,
 } from './services/workoutApi';
 import { Button } from './components/ui/button';
 import { LogOut } from 'lucide-react';
@@ -156,6 +157,53 @@ function App() {
     setScreen({ type: 'workout-execution', workoutId });
   };
 
+  const handleCompleteAll = async (workoutId: string) => {
+    const workout = workouts.find((w) => w.id === workoutId);
+    if (!workout) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Criar completions para todos os exercícios
+    const allExerciseCompletions: ExerciseCompletion[] = workout.exercises.map((we) => ({
+      exerciseId: we.exerciseId,
+      sets: Array.from({ length: we.sets }, () => ({
+        reps: we.reps,
+        weight: we.weight || 0,
+        completed: true,
+      })),
+    }));
+
+    const newCompletion: WorkoutCompletion = {
+      workoutId,
+      date: today,
+      exercises: allExerciseCompletions,
+      completed: true,
+    };
+
+    // Atualizar estado local
+    const existingCompletionIndex = completions.findIndex(
+      (c) => c.workoutId === workoutId && c.date === today
+    );
+
+    let updatedCompletions: WorkoutCompletion[];
+    if (existingCompletionIndex >= 0) {
+      updatedCompletions = [...completions];
+      updatedCompletions[existingCompletionIndex] = newCompletion;
+    } else {
+      updatedCompletions = [...completions, newCompletion];
+    }
+
+    setCompletions(updatedCompletions);
+
+    // Salvar no backend
+    try {
+      await workoutAPI.createCompletion(newCompletion);
+      console.log('All exercises marked as completed!');
+    } catch (error) {
+      console.error('Error saving completion:', error);
+    }
+  };
+
   if (!user) {
     return <LoginScreen onLogin={handleLogin} />;
   }
@@ -181,6 +229,7 @@ function App() {
           completion={completion || null}
           onBack={handleBackFromWorkout}
           onExerciseClick={(exerciseId) => handleExerciseClick(workout.id, exerciseId)}
+          onCompleteAll={() => handleCompleteAll(workout.id)}
         />
       </div>
     );
