@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Workout, Exercise, WorkoutExercise } from '../types/workout';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
@@ -8,7 +8,8 @@ import { Textarea } from './ui/textarea';
 import { Checkbox } from './ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent } from './ui/card';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Search } from 'lucide-react';
+import { workoutAPI } from '../services/workoutApi';
 
 interface WorkoutFormDialogProps {
   open: boolean;
@@ -41,6 +42,35 @@ export function WorkoutFormDialog({
   const [instructions, setInstructions] = useState('');
   const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([]);
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [exerciseSuggestions, setExerciseSuggestions] = useState<Exercise[]>([]);
+  const [allExercises, setAllExercises] = useState<Exercise[]>(exercises);
+
+  // Atualizar lista de exercícios quando props mudar
+  useEffect(() => {
+    setAllExercises(exercises);
+  }, [exercises]);
+
+  // Buscar sugestões quando termo de busca mudar
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (searchTerm.trim().length > 0) {
+        try {
+          const results = await workoutAPI.getExerciseSuggestions(searchTerm);
+          setExerciseSuggestions(results);
+          setAllExercises(results);
+        } catch (err) {
+          console.error('Failed to fetch suggestions:', err);
+        }
+      } else {
+        setAllExercises(exercises);
+        setExerciseSuggestions([]);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, exercises]);
 
   useEffect(() => {
     if (workout) {
@@ -57,11 +87,11 @@ export function WorkoutFormDialog({
   }, [workout, open]);
 
   const handleAddExercise = () => {
-    if (exercises.length === 0) return;
+    if (allExercises.length === 0) return;
     setWorkoutExercises([
       ...workoutExercises,
       {
-        exerciseId: exercises[0].id,
+        exerciseId: allExercises[0].id,
         instructions: '',
         sets: 3,
         reps: 10,
@@ -137,14 +167,25 @@ export function WorkoutFormDialog({
                     size="sm"
                     variant="outline"
                     onClick={handleAddExercise}
-                    disabled={exercises.length === 0}
+                    disabled={allExercises.length === 0}
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Exercise
                   </Button>
                 </div>
 
-                {exercises.length === 0 ? (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search exercises..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {allExercises.length === 0 ? (
                   <p className="text-sm text-gray-500">
                     No exercises available. Create exercises first.
                   </p>
@@ -165,7 +206,7 @@ export function WorkoutFormDialog({
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {exercises.map((ex) => (
+                                  {allExercises.map((ex) => (
                                     <SelectItem key={ex.id} value={ex.id}>
                                       {ex.name}
                                     </SelectItem>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Test Login API</h1>
+    <div>
+        <input type="text" id="username" placeholder="Username" value="testuser2">
+        <input type="password" id="password" placeholder="Password" value="mytest123">
+        <button onclick="testLogin()">Test Login</button>
+        <button onclick="testRegister()">Test Register</button>
+    </div>
+    <div id="result" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;">
+        Result will appear here...
+    </div>
+
+    <script>
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = 'Testing login...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/users/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<strong>Success!</strong><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                resultDiv.style.background = '#d4edda';
+            } catch (error) {
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                resultDiv.style.background = '#f8d7da';
+                console.error('Login error:', error);
+            }
+        }
+
+        async function testRegister() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.innerHTML = 'Testing registration...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<strong>Response:</strong><br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                resultDiv.style.background = response.ok ? '#d4edda' : '#fff3cd';
+            } catch (error) {
+                resultDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+                resultDiv.style.background = '#f8d7da';
+                console.error('Register error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

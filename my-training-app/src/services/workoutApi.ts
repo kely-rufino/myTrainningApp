@@ -62,21 +62,27 @@ class WorkoutAPI {
   // Método auxiliar para fazer requisições
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        ...this.getHeaders(),
-        ...options.headers,
-      },
-    });
+    
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...this.getHeaders(),
+          ...options.headers,
+        },
+      });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Network error' }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Network error' }));
+        throw new Error(error.message || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.data || data;
+    } catch (error: any) {
+      console.error('API Request Error:', { url, error: error.message });
+      throw error;
     }
-
-    const data = await response.json();
-    return data.data || data;
   }
 
   // === USER METHODS ===
@@ -89,10 +95,34 @@ class WorkoutAPI {
     return response;
   }
 
+  async registerUser(username: string, password: string): Promise<{ id: number; username: string; created_at: string }> {
+    const response = await this.request<{ id: number; username: string; created_at: string }>('/users/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    this.setUser(username);
+    return response;
+  }
+
+  async loginUser(username: string, password: string): Promise<{ id: number; username: string; created_at: string }> {
+    const response = await this.request<{ id: number; username: string; created_at: string }>('/users/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    });
+    this.setUser(username);
+    return response;
+  }
+
   // === EXERCISE METHODS ===
   async getExercises(): Promise<Exercise[]> {
     if (!this.username) throw new Error('No user set');
     return this.request<Exercise[]>('/exercises');
+  }
+
+  async getExerciseSuggestions(query?: string): Promise<Exercise[]> {
+    if (!this.username) throw new Error('No user set');
+    const params = query ? `?q=${encodeURIComponent(query)}` : '';
+    return this.request<Exercise[]>(`/exercises/suggestions${params}`);
   }
 
   async createExercise(exercise: Omit<Exercise, 'created_at'>): Promise<Exercise> {

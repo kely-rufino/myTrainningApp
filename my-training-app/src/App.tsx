@@ -64,13 +64,26 @@ function App() {
     }
   };
 
-  const handleLogin = async (username: string) => {
+  const handleLogin = async (username: string, password: string, isRegister: boolean) => {
     try {
+      if (isRegister) {
+        // Register new user
+        const userData = await workoutAPI.registerUser(username, password);
+        console.log('Registration successful:', userData);
+      } else {
+        // Login existing user
+        const userData = await workoutAPI.loginUser(username, password);
+        console.log('Login successful:', userData);
+      }
+      
       saveUser(username); // Salva no localStorage e configura API
       setUser(username);
       await loadData(); // Carrega dados do usuário
-    } catch (error) {
-      console.error('Error during login:', error);
+    } catch (error: any) {
+      console.error('Error during authentication:', error);
+      // Extract error message from response if available
+      const errorMessage = error.message || 'Authentication failed. Please try again.';
+      throw new Error(errorMessage);
     }
   };
 

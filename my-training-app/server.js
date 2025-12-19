@@ -5,7 +5,8 @@ import {
   UserRepository, 
   ExerciseRepository, 
   WorkoutRepository, 
-  WorkoutCompletionRepository 
+  WorkoutCompletionRepository,
+  DefaultExerciseRepository
 } from './database/repositories.js';
 
 const app = express();
@@ -145,6 +146,94 @@ const getUserMiddleware = (req, res, next) => {
 };
 
 // --- USER ROUTES ---
+// Register new user
+app.post('/api/users/register', async (req, res) => {
+  try {
+    console.log('📝 Register request received:', { username: req.body.username });
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      console.log('❌ Missing username or password');
+      return res.status(400).json({
+        success: false,
+        message: 'Username and password are required'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = UserRepository.findByUsername(username);
+    if (existingUser) {
+      console.log('❌ User already exists:', username);
+      return res.status(409).json({
+        success: false,
+        message: 'Username already exists'
+      });
+    }
+
+    console.log('Creating user:', username);
+    const user = await UserRepository.create(username, password);
+    console.log('✅ User created:', username);
+    
+    // Remove password_hash from response
+    const { password_hash, ...userWithoutPassword } = user;
+    
+    res.json({
+      success: true,
+      message: 'User registered successfully',
+      data: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('❌ Error registering user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to register user',
+      error: error.message
+    });
+  }
+});
+
+// Login user
+app.post('/api/users/login', async (req, res) => {
+  try {
+    console.log('🔐 Login request received:', { username: req.body.username });
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      console.log('❌ Missing username or password');
+      return res.status(400).json({
+        success: false,
+        message: 'Username and password are required'
+      });
+    }
+
+    console.log('Authenticating user:', username);
+    const user = await UserRepository.authenticate(username, password);
+    
+    if (!user) {
+      console.log('❌ Invalid credentials for:', username);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
+      });
+    }
+
+    console.log('✅ Login successful:', username);
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: user
+    });
+  } catch (error) {
+    console.error('❌ Error logging in:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to login',
+      error: error.message
+    });
+  }
+});
+
+// Legacy endpoint for backwards compatibility
 app.post('/api/users', (req, res) => {
   try {
     const { username } = req.body;
@@ -185,6 +274,52 @@ app.get('/api/exercises', getUserMiddleware, (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch exercises',
+      error: error.message
+    });
+  }
+});
+
+// Sugestões: mescla exercícios padrão + exercícios do usuário (opção de filtro por nome)
+app.get('/api/exercises/suggestions', getUserMiddleware, (req, res) => {
+  try {
+    const term = (req.query.q || '').toString().trim();
+
+    const defaultExercises = term
+      ? DefaultExerciseRepository.searchByName(term)
+      : DefaultExerciseRepository.findAll();
+
+    const userExercises = term
+      ? ExerciseRepository.searchByName(req.user.id, term)
+      : ExerciseRepository.findByUserId(req.user.id);
+
+    // Merge simples mantendo ordem: padrão primeiro, depois os do usuário
+    const merged = [];
+    const seen = new Set();
+
+    for (const ex of defaultExercises) {
+      if (!seen.has(ex.id)) {
+        merged.push({ id: ex.id, name: ex.name, imageUrl: ex.image_url || null });
+        seen.add(ex.id);
+      }
+    }
+
+    for (const ex of userExercises) {
+      if (!seen.has(ex.id)) {
+        merged.push({ id: ex.id, name: ex.name, imageUrl: ex.image_url || null });
+        seen.add(ex.id);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Exercise suggestions retrieved successfully',
+      data: merged
+    });
+  } catch (error) {
+    console.error('Error fetching exercise suggestions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch exercise suggestions',
       error: error.message
     });
   }
@@ -578,4 +713,14 @@ app.put('/api/completions/:id', getUserMiddleware, (req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
   console.log(`📊 Initial counter state: ${counterState.count}`);
+});
+
+// Handle uncaught promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
 });

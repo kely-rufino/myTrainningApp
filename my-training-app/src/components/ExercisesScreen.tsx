@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Exercise } from '../types/workout';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
@@ -17,6 +17,48 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
   const [newExerciseName, setNewExerciseName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<Exercise[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Buscar sugestões quando o usuário digita
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (newExerciseName.trim().length > 0) {
+        try {
+          const results = await workoutAPI.getExerciseSuggestions(newExerciseName);
+          console.log('Suggestions fetched:', results);
+          setSuggestions(results);
+          setShowSuggestions(true);
+        } catch (err) {
+          console.error('Failed to fetch suggestions:', err);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [newExerciseName]);
+
+  // Fechar sugestões ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectSuggestion = (exercise: Exercise) => {
+    setNewExerciseName(exercise.name);
+    setShowSuggestions(false);
+  };
 
   const handleAdd = async () => {
     if (newExerciseName.trim()) {
@@ -101,17 +143,37 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
           )}
 
           {isAdding && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Exercise name"
-                    value={newExerciseName}
-                    onChange={(e) => setNewExerciseName(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
-                    autoFocus
-                    disabled={loading}
-                  />
+            <Card className="relative">
+              <CardContent className="p-4 overflow-visible">
+                <div className="flex gap-2" ref={suggestionsRef}>
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Exercise name (start typing for suggestions)"
+                      value={newExerciseName}
+                      onChange={(e) => setNewExerciseName(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+                      onFocus={() => newExerciseName.trim() && setShowSuggestions(true)}
+                      autoFocus
+                      disabled={loading}
+                    />
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div 
+                        className="absolute w-full mt-1 bg-white border border-gray-300 rounded-md shadow-xl max-h-60 overflow-y-auto"
+                        style={{ top: '100%', left: 0, zIndex: 9999 }}
+                      >
+                        {suggestions.map((suggestion) => (
+                          <button
+                            key={suggestion.id}
+                            type="button"
+                            onClick={() => handleSelectSuggestion(suggestion)}
+                            className="w-full px-4 py-2 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                          >
+                            <span className="font-medium">{suggestion.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <Button onClick={handleAdd} size="sm" disabled={loading}>
                     {loading ? 'Adding...' : 'Add'}
                   </Button>
@@ -120,6 +182,8 @@ export function ExercisesScreen({ exercises, onSave }: ExercisesScreenProps) {
                       setIsAdding(false);
                       setNewExerciseName('');
                       setError(null);
+                      setSuggestions([]);
+                      setShowSuggestions(false);
                     }} 
                     variant="outline" 
                     size="sm"

@@ -1,10 +1,14 @@
 import db from './init.js';
+import bcrypt from 'bcrypt';
+
+const SALT_ROUNDS = 10;
 
 // Repository para Users
 export class UserRepository {
-  static create(username) {
-    const stmt = db.prepare('INSERT INTO users (username) VALUES (?)');
-    const result = stmt.run(username);
+  static async create(username, password) {
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+    const stmt = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
+    const result = stmt.run(username, passwordHash);
     return this.findById(result.lastInsertRowid);
   }
 
@@ -16,6 +20,22 @@ export class UserRepository {
   static findByUsername(username) {
     const stmt = db.prepare('SELECT * FROM users WHERE username = ?');
     return stmt.get(username);
+  }
+
+  static async authenticate(username, password) {
+    const user = this.findByUsername(username);
+    if (!user) {
+      return null;
+    }
+    
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    if (!isValid) {
+      return null;
+    }
+    
+    // Return user without password hash
+    const { password_hash, ...userWithoutPassword } = user;
+    return userWithoutPassword;
   }
 
   static findOrCreate(username) {
@@ -48,6 +68,11 @@ export class ExerciseRepository {
     return stmt.all(userId);
   }
 
+  static searchByName(userId, term) {
+    const stmt = db.prepare('SELECT * FROM exercises WHERE user_id = ? AND name LIKE ? ORDER BY name');
+    return stmt.all(userId, `%${term}%`);
+  }
+
   static update(id, updates) {
     const fields = Object.keys(updates).map(key => `${key} = ?`).join(', ');
     const values = Object.values(updates);
@@ -64,6 +89,19 @@ export class ExerciseRepository {
     const stmt = db.prepare('DELETE FROM exercises WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
+  }
+}
+
+// Repository para exercícios padrão
+export class DefaultExerciseRepository {
+  static findAll() {
+    const stmt = db.prepare('SELECT * FROM default_exercises ORDER BY name');
+    return stmt.all();
+  }
+
+  static searchByName(term) {
+    const stmt = db.prepare('SELECT * FROM default_exercises WHERE name LIKE ? ORDER BY name');
+    return stmt.all(`%${term}%`);
   }
 }
 
