@@ -1,0 +1,97 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id         Int                @id @default(autoincrement())
+  email      String             @unique
+  name       String
+  lastName   String
+  password   String
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  deletedAt  DateTime?
+  workouts   Workout[]
+  executions WorkoutExecution[]
+}
+
+model Exercise {
+  id          Int                   @id @default(autoincrement())
+  name        String                @unique
+  description String?
+  image       String?
+  videoUrl    String?
+  blocks      WorkoutSessionBlock[]
+}
+
+model Workout {
+  id         Int                @id @default(autoincrement())
+  name       String
+  userId     Int
+  user       User               @relation(fields: [userId], references: [id])
+  sessions   WorkoutSession[]
+  executions WorkoutExecution[]
+}
+
+model WorkoutSession {
+  id        Int                   @id @default(autoincrement())
+  workoutId Int
+  name      String?
+  order     Int
+  workout   Workout               @relation(fields: [workoutId], references: [id])
+  blocks    WorkoutSessionBlock[]
+}
+
+model WorkoutSessionBlock {
+  id             Int                       @id @default(autoincrement())
+  sessionId      Int
+  exerciseId     Int
+  instructions   String?
+  order          Int
+  supersetGroupId String?
+  session      WorkoutSession            @relation(fields: [sessionId], references: [id])
+  exercise     Exercise                  @relation(fields: [exerciseId], references: [id])
+  items        WorkoutSessionBlockItem[]
+}
+
+model WorkoutSessionBlockItem {
+  id         Int                            @id @default(autoincrement())
+  blockId    Int
+  reps       Int?
+  weight     Float?
+  duration   Int? // seconds
+  order      Int
+  block      WorkoutSessionBlock            @relation(fields: [blockId], references: [id])
+  executions WorkoutSessionBlockExecution[]
+}
+
+model WorkoutExecution {
+  id              Int                            @id @default(autoincrement())
+  workoutId       Int
+  userId          Int
+  date            DateTime
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime                       @default(now())
+  workout         Workout                        @relation(fields: [workoutId], references: [id])
+  user            User                           @relation(fields: [userId], references: [id])
+  blockExecutions WorkoutSessionBlockExecution[]
+}
+
+model WorkoutSessionBlockExecution {
+  id                      Int                     @id @default(autoincrement())
+  workoutExecutionId      Int
+  workoutSessionBlockItemId Int
+  reps                    Int?
+  weight                  Float?
+  duration                Int? // seconds
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  workoutExecution        WorkoutExecution        @relation(fields: [workoutExecutionId], references: [id])
+  workoutSessionBlockItem WorkoutSessionBlockItem @relation(fields: [workoutSessionBlockItemId], references: [id])
+}

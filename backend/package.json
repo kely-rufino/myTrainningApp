@@ -5,12 +5,24 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.0",
+    "@fastify/jwt": "^10.0.0",
+    "@prisma/adapter-libsql": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.1",
     "fastify": "^5.0.0",
+    "fastify-plugin": "^5.1.0",
     "fastify-type-provider-zod": "^6.0.0",
+    "prisma": "^7.7.0",
     "zod": "^4.0.0"
   },
   "devDependencies": {
