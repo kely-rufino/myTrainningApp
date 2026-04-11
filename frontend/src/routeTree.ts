@@ -74,7 +74,7 @@ const workoutsRoute = createRoute({
   component: WorkoutsPage,
 })
 
-const workoutBuilderRoute = createRoute({
+export const workoutBuilderRoute = createRoute({
   getParentRoute: () => appLayout,
   path: '/workouts/$id',
   component: WorkoutBuilderPage,

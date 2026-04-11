@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useParams, useNavigate } from '@tanstack/react-router'
+import { useNavigate } from '@tanstack/react-router'
+import { workoutBuilderRoute } from '../routeTree'
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Workout, Session, Block, SetItem, Exercise } from '../lib/workoutTypes'
@@ -17,14 +18,16 @@ function workoutQueryOptions(id: number) {
 
 function SetRow({
   set,
+  mode,
   onUpdate,
   onDelete,
 }: {
   set: SetItem
+  mode: 'reps' | 'duration'
   onUpdate: (data: Partial<Pick<SetItem, 'reps' | 'weight' | 'duration'>>) => void
   onDelete: () => void
 }) {
-  const isDuration = set.duration !== null
+  const isDuration = mode === 'duration'
   return (
     <div className="flex items-center gap-2 py-1">
       <span className="text-xs text-gray-400 w-5 text-center">{set.order}</span>
@@ -34,7 +37,7 @@ function SetRow({
           placeholder="sec"
           defaultValue={set.duration ?? ''}
           onBlur={e => onUpdate({ duration: e.target.value ? Number(e.target.value) : null })}
-          className="w-20 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+          className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
         />
       ) : (
         <>
@@ -43,7 +46,7 @@ function SetRow({
             placeholder="reps"
             defaultValue={set.reps ?? ''}
             onBlur={e => onUpdate({ reps: e.target.value ? Number(e.target.value) : null })}
-            className="flex-1 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+            className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
           />
           <span className="text-xs text-gray-400">×</span>
           <input
@@ -51,7 +54,7 @@ function SetRow({
             placeholder="kg"
             defaultValue={set.weight ?? ''}
             onBlur={e => onUpdate({ weight: e.target.value ? Number(e.target.value) : null })}
-            className="flex-1 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+            className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
           />
         </>
       )}
@@ -160,6 +163,7 @@ function BlockCard({
           <SetRow
             key={set.id}
             set={set}
+            mode={mode}
             onUpdate={data => updateSet.mutate({ id: set.id, data })}
             onDelete={() => deleteSet.mutate(set.id)}
           />
@@ -268,7 +272,7 @@ function SessionPanel({ session, workoutId }: { session: Session; workoutId: num
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function WorkoutBuilderPage() {
-  const { id } = useParams({ from: '/workouts/$id' })
+  const { id } = workoutBuilderRoute.useParams()
   const workoutId = Number(id)
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -305,7 +309,7 @@ export default function WorkoutBuilderPage() {
   const activeSession = workout.sessions[activeSessionIdx] ?? null
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Title bar */}
       <div className="px-4 pt-4 pb-3 bg-white shadow-sm">
         <button

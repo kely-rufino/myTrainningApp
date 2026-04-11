@@ -9,7 +9,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "exercises:fetch": "tsx scripts/fetch-exercises.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

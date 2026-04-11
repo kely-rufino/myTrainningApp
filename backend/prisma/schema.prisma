@@ -39,12 +39,13 @@ model Workout {
 }
 
 model WorkoutSession {
-  id        Int                   @id @default(autoincrement())
-  workoutId Int
-  name      String?
-  order     Int
-  workout   Workout               @relation(fields: [workoutId], references: [id])
-  blocks    WorkoutSessionBlock[]
+  id         Int                   @id @default(autoincrement())
+  workoutId  Int
+  name       String?
+  order      Int
+  workout    Workout               @relation(fields: [workoutId], references: [id])
+  blocks     WorkoutSessionBlock[]
+  executions WorkoutExecution[]
 }
 
 model WorkoutSessionBlock {
@@ -73,12 +74,14 @@ model WorkoutSessionBlockItem {
 model WorkoutExecution {
   id              Int                            @id @default(autoincrement())
   workoutId       Int
+  sessionId       Int?
   userId          Int
   date            DateTime
   startedAt       DateTime?
   finishedAt      DateTime?
   createdAt       DateTime                       @default(now())
   workout         Workout                        @relation(fields: [workoutId], references: [id])
+  session         WorkoutSession?                @relation(fields: [sessionId], references: [id])
   user            User                           @relation(fields: [userId], references: [id])
   blockExecutions WorkoutSessionBlockExecution[]
 }

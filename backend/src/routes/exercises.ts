@@ -22,4 +22,25 @@ export async function exerciseRoutes(fastify: FastifyInstance) {
         orderBy: { name: 'asc' },
       })
   )
+
+  app.post(
+    '/api/exercises',
+    {
+      schema: {
+        body: z.object({
+          name: z.string().min(1).max(100),
+          description: z.string().max(500).optional(),
+        }),
+      },
+    },
+    async (req, reply) => {
+      const exists = await prisma.exercise.findUnique({ where: { name: req.body.name } })
+      if (exists) return reply.status(409).send({ error: 'An exercise with that name already exists' } as any)
+      const exercise = await prisma.exercise.create({
+        data: { name: req.body.name, description: req.body.description ?? null },
+        select: { id: true, name: true, description: true },
+      })
+      return reply.status(201).send(exercise)
+    }
+  )
 }

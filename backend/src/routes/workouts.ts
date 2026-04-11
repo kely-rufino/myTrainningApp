@@ -311,4 +311,146 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       return reply.status(204).send()
     }
   )
+
+  // ── Calendar / Executions ─────────────────────────────────────────────────
+
+  const executionInclude = {
+    workout: { select: { id: true, name: true } },
+    session: {
+      select: {
+        id: true,
+        name: true,
+        order: true,
+        blocks: {
+          orderBy: { order: 'asc' as const },
+          include: blockInclude,
+        },
+      },
+    },
+    blockExecutions: {
+      select: {
+        id: true,
+        workoutSessionBlockItemId: true,
+        reps: true,
+        weight: true,
+        duration: true,
+      },
+    },
+  }
+
+  app.get(
+    '/api/calendar',
+    { schema: { querystring: z.object({ from: z.string(), to: z.string() }) } },
+    async (req) => {
+      const from = new Date(req.query.from)
+      const to = new Date(req.query.to)
+      to.setHours(23, 59, 59, 999)
+      return prisma.workoutExecution.findMany({
+        where: { userId: req.user.sub, date: { gte: from, lte: to } },
+        include: executionInclude,
+        orderBy: { date: 'asc' },
+      })
+    }
+  )
+
+  app.post(
+    '/api/executions',
+    {
+      schema: {
+        body: z.object({
+          workoutId: z.number(),
+          sessionId: z.number().optional(),
+          date: z.string(),
+        }),
+      },
+    },
+    async (req, reply) => {
+      const w = await ownedWorkout(req.user.sub, req.body.workoutId)
+      if (!w) return reply.status(404).send({ error: 'Not found' } as any)
+      const ex = await prisma.workoutExecution.create({
+        data: {
+          workoutId: w.id,
+          sessionId: req.body.sessionId ?? null,
+          userId: req.user.sub,
+          date: new Date(req.body.date),
+        },
+        include: executionInclude,
+      })
+      return reply.status(201).send(ex)
+    }
+  )
+
+  app.patch(
+    '/api/executions/:id/start',
+    { schema: { params: z.object({ id: z.coerce.number() }) } },
+    async (req, reply) => {
+      const ex = await prisma.workoutExecution.findFirst({
+        where: { id: req.params.id, userId: req.user.sub },
+      })
+      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
+      return prisma.workoutExecution.update({
+        where: { id: ex.id },
+        data: { startedAt: new Date() },
+        include: executionInclude,
+      })
+    }
+  )
+
+  app.patch(
+    '/api/executions/:id/finish',
+    { schema: { params: z.object({ id: z.coerce.number() }) } },
+    async (req, reply) => {
+      const ex = await prisma.workoutExecution.findFirst({
+        where: { id: req.params.id, userId: req.user.sub },
+      })
+      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
+      return prisma.workoutExecution.update({
+        where: { id: ex.id },
+        data: { finishedAt: new Date() },
+        include: executionInclude,
+      })
+    }
+  )
+
+  // Upsert a single set result (reps/weight/duration) for a block item
+  app.post(
+    '/api/executions/:id/log',
+    {
+      schema: {
+        params: z.object({ id: z.coerce.number() }),
+        body: z.object({
+          blockItemId: z.number(),
+          reps: z.number().int().nullable().optional(),
+          weight: z.number().nullable().optional(),
+          duration: z.number().int().nullable().optional(),
+        }),
+      },
+    },
+    async (req, reply) => {
+      const ex = await prisma.workoutExecution.findFirst({
+        where: { id: req.params.id, userId: req.user.sub },
+      })
+      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
+
+      const existing = await prisma.workoutSessionBlockExecution.findFirst({
+        where: { workoutExecutionId: ex.id, workoutSessionBlockItemId: req.body.blockItemId },
+      })
+
+      const data = {
+        reps: req.body.reps ?? null,
+        weight: req.body.weight ?? null,
+        duration: req.body.duration ?? null,
+      }
+
+      if (existing) {
+        return prisma.workoutSessionBlockExecution.update({ where: { id: existing.id }, data })
+      }
+
+      return reply.status(201).send(
+        await prisma.workoutSessionBlockExecution.create({
+          data: { workoutExecutionId: ex.id, workoutSessionBlockItemId: req.body.blockItemId, ...data },
+        })
+      )
+    }
+  )
 }
