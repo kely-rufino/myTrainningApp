@@ -67,16 +67,82 @@ function SetRow({
   )
 }
 
+// ── Video helpers ─────────────────────────────────────────────────────────────
+
+function toEmbedUrl(url: string): string | null {
+  try {
+    const u = new URL(url)
+    // youtube.com/watch?v=ID
+    if ((u.hostname === 'www.youtube.com' || u.hostname === 'youtube.com' || u.hostname === 'm.youtube.com') && u.searchParams.get('v')) {
+      return `https://www.youtube.com/embed/${u.searchParams.get('v')}?autoplay=1`
+    }
+    // youtu.be/ID
+    if (u.hostname === 'youtu.be') {
+      return `https://www.youtube.com/embed${u.pathname}?autoplay=1`
+    }
+    // youtube.com/shorts/ID
+    if ((u.hostname === 'www.youtube.com' || u.hostname === 'youtube.com') && u.pathname.startsWith('/shorts/')) {
+      const id = u.pathname.replace('/shorts/', '')
+      return `https://www.youtube.com/embed/${id}?autoplay=1`
+    }
+    // fallback — try embedding as-is
+    return url
+  } catch {
+    return null
+  }
+}
+
+function VideoSheet({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
+  const embedUrl = toEmbedUrl(url)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end">
+      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
+      <div className="relative w-full bg-black rounded-t-2xl overflow-hidden">
+        {/* Handle + title */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <div className="w-10 h-1 rounded-full bg-white/20 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+          <p className="text-white text-sm font-semibold truncate flex-1 pt-1">{title}</p>
+          <button onClick={onClose} className="text-white/60 active:text-white ml-2 shrink-0">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Video */}
+        {embedUrl ? (
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <iframe
+              src={embedUrl}
+              className="absolute inset-0 w-full h-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        ) : (
+          <div className="px-4 py-8 text-center text-white/60 text-sm">
+            Unable to embed this video.
+          </div>
+        )}
+        <div className="h-6" />
+      </div>
+    </div>
+  )
+}
+
 // ── Block card ────────────────────────────────────────────────────────────────
 
 function BlockCard({
   block,
   workoutId,
   onAddSuperset,
+  inSuperset = false,
 }: {
   block: Block
   workoutId: number
   onAddSuperset: (blockId: number) => void
+  inSuperset?: boolean
 }) {
   const qc = useQueryClient()
   const inv = () => qc.invalidateQueries({ queryKey: ['workout', workoutId] })
@@ -106,6 +172,7 @@ function BlockCard({
   const [mode, setMode] = useState<'reps' | 'duration'>(
     block.items.some(i => i.duration !== null) ? 'duration' : 'reps'
   )
+  const [videoOpen, setVideoOpen] = useState(false)
 
   function addNewSet() {
     if (mode === 'duration') addSet.mutate({ duration: null })
@@ -117,12 +184,28 @@ function BlockCard({
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <p className="font-semibold text-gray-900 text-sm leading-tight flex-1 pr-2">{block.exercise.name}</p>
-        <button onClick={() => deleteBlock.mutate()} className="text-gray-300 active:text-red-400">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {block.exercise.videoUrl && (
+            <button
+              onClick={() => setVideoOpen(true)}
+              className="text-blue-400 active:text-blue-600 p-1"
+              aria-label="Watch video"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          )}
+          <button onClick={() => deleteBlock.mutate()} className="text-gray-300 active:text-red-400 p-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Mode toggle */}
@@ -182,9 +265,17 @@ function BlockCard({
           onClick={() => onAddSuperset(block.id)}
           className="px-3 py-2 border border-dashed border-blue-200 rounded-lg text-xs text-blue-400 active:bg-blue-50"
         >
-          + Superset
+          {inSuperset ? '+ Add exercise' : '+ Superset'}
         </button>
       </div>
+
+      {videoOpen && block.exercise.videoUrl && (
+        <VideoSheet
+          url={block.exercise.videoUrl}
+          title={block.exercise.name}
+          onClose={() => setVideoOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -207,7 +298,7 @@ function BlockGroupCard({
     <div className="border-l-4 border-blue-400 pl-3 flex flex-col gap-2">
       <p className="text-xs font-semibold text-blue-400 uppercase tracking-wide">Superset</p>
       {blocks.map(b => (
-        <BlockCard key={b.id} block={b} workoutId={workoutId} onAddSuperset={onAddSuperset} />
+        <BlockCard key={b.id} block={b} workoutId={workoutId} onAddSuperset={onAddSuperset} inSuperset />
       ))}
     </div>
   )
@@ -215,7 +306,15 @@ function BlockGroupCard({
 
 // ── Session panel ─────────────────────────────────────────────────────────────
 
-function SessionPanel({ session, workoutId }: { session: Session; workoutId: number }) {
+function SessionPanel({
+  session,
+  workoutId,
+  onDelete,
+}: {
+  session: Session
+  workoutId: number
+  onDelete: () => void
+}) {
   const qc = useQueryClient()
   const inv = () => qc.invalidateQueries({ queryKey: ['workout', workoutId] })
   const [pickerFor, setPickerFor] = useState<'block' | number | null>(null)
@@ -243,7 +342,19 @@ function SessionPanel({ session, workoutId }: { session: Session; workoutId: num
   return (
     <div className="flex flex-col gap-3">
       {groups.length === 0 && (
-        <p className="text-center text-gray-400 text-sm py-4">No exercises yet</p>
+        <div className="flex flex-col items-center gap-3 py-8">
+          <p className="text-gray-400 text-sm">No exercises yet</p>
+          <button
+            onClick={onDelete}
+            className="flex items-center gap-1.5 text-red-400 text-sm font-medium active:opacity-70"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Delete this day
+          </button>
+        </div>
       )}
 
       {groups.map((g, i) => (
@@ -271,6 +382,7 @@ function SessionPanel({ session, workoutId }: { session: Session; workoutId: num
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
+
 export default function WorkoutBuilderPage() {
   const { id } = workoutBuilderRoute.useParams()
   const workoutId = Number(id)
@@ -282,6 +394,10 @@ export default function WorkoutBuilderPage() {
   const [activeSessionIdx, setActiveSessionIdx] = useState(0)
   const [editingName, setEditingName] = useState(false)
   const [nameValue, setNameValue] = useState('')
+
+  // Session actions sheet
+  const [sessionMenu, setSessionMenu] = useState<{ id: number; name: string; idx: number } | null>(null)
+  const [renamingSession, setRenamingSession] = useState<{ id: number; value: string } | null>(null)
 
   const addSession = useMutation({
     mutationFn: () =>
@@ -298,7 +414,24 @@ export default function WorkoutBuilderPage() {
     onSuccess: () => { inv(); setEditingName(false) },
   })
 
-  if (isLoading) {
+  const renameSession = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) =>
+      apiFetch(`/sessions/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+    onSuccess: () => { inv(); setRenamingSession(null) },
+  })
+
+  const deleteSession = useMutation({
+    mutationFn: (id: number) => apiFetch(`/sessions/${id}`, { method: 'DELETE' }),
+    onSuccess: (_, deletedId) => {
+      inv()
+      setSessionMenu(null)
+      // If we deleted the active session, move to the previous one
+      const idx = workout?.sessions.findIndex(s => s.id === deletedId) ?? 0
+      setActiveSessionIdx(Math.max(0, idx - 1))
+    },
+  })
+
+if (isLoading) {
     return <div className="flex items-center justify-center h-40 text-gray-400 text-sm">Loading...</div>
   }
 
@@ -348,15 +481,28 @@ export default function WorkoutBuilderPage() {
       {/* Session tabs */}
       <div className="flex gap-2 px-4 pt-3 pb-2 overflow-x-auto">
         {workout.sessions.map((s, i) => (
-          <button
-            key={s.id}
-            onClick={() => setActiveSessionIdx(i)}
-            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              i === activeSessionIdx ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 shadow-sm'
-            }`}
-          >
-            {s.name ?? `Day ${i + 1}`}
-          </button>
+          <div key={s.id} className="flex-shrink-0 flex items-center gap-0.5">
+            <button
+              onClick={() => setActiveSessionIdx(i)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                i === activeSessionIdx ? 'bg-blue-500 text-white' : 'bg-white text-gray-500 shadow-sm'
+              }`}
+            >
+              {s.name ?? `Day ${i + 1}`}
+            </button>
+            {i === activeSessionIdx && (
+              <button
+                onClick={() => setSessionMenu({ id: s.id, name: s.name ?? `Day ${i + 1}`, idx: i })}
+                className="w-6 h-6 flex items-center justify-center text-blue-300 active:text-blue-500"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <circle cx="4" cy="10" r="1.5" />
+                  <circle cx="10" cy="10" r="1.5" />
+                  <circle cx="16" cy="10" r="1.5" />
+                </svg>
+              </button>
+            )}
+          </div>
         ))}
         <button
           onClick={() => addSession.mutate()}
@@ -370,11 +516,68 @@ export default function WorkoutBuilderPage() {
       {/* Session content */}
       <div className="flex-1 px-4 pb-10 pt-2">
         {activeSession ? (
-          <SessionPanel session={activeSession} workoutId={workoutId} />
+          <SessionPanel
+            session={activeSession}
+            workoutId={workoutId}
+            onDelete={() => deleteSession.mutate(activeSession.id)}
+          />
         ) : (
           <div className="text-center text-gray-400 text-sm py-10">Add a day to get started</div>
         )}
       </div>
+
+      {/* Session actions sheet */}
+      {sessionMenu !== null && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSessionMenu(null)} />
+          <div className="relative w-full bg-white rounded-t-2xl px-5 py-6 flex flex-col gap-3">
+            <p className="font-semibold text-gray-900 text-center">{sessionMenu.name}</p>
+            <button
+              onClick={() => { setRenamingSession({ id: sessionMenu.id, value: sessionMenu.name }); setSessionMenu(null) }}
+              className="w-full py-3 bg-gray-100 text-gray-800 rounded-xl font-medium active:opacity-80"
+            >
+              Rename
+            </button>
+            <button
+              onClick={() => deleteSession.mutate(sessionMenu.id)}
+              disabled={deleteSession.isPending}
+              className="w-full py-3 bg-red-500 text-white rounded-xl font-semibold active:opacity-80 disabled:opacity-40"
+            >
+              Delete Day
+            </button>
+            <button onClick={() => setSessionMenu(null)} className="w-full py-3 text-gray-500 font-semibold">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Rename session sheet */}
+      {renamingSession !== null && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setRenamingSession(null)} />
+          <div className="relative w-full bg-white rounded-t-2xl px-5 py-6 flex flex-col gap-4">
+            <p className="font-semibold text-gray-900 text-center">Rename Day</p>
+            <input
+              autoFocus
+              type="text"
+              value={renamingSession.value}
+              onChange={e => setRenamingSession(r => r && { ...r, value: e.target.value })}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-400"
+            />
+            <button
+              onClick={() => { if (renamingSession.value.trim()) renameSession.mutate({ id: renamingSession.id, name: renamingSession.value.trim() }) }}
+              disabled={!renamingSession.value.trim() || renameSession.isPending}
+              className="w-full py-3 bg-blue-500 text-white rounded-xl font-semibold active:opacity-80 disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button onClick={() => setRenamingSession(null)} className="w-full py-3 text-gray-500 font-semibold">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

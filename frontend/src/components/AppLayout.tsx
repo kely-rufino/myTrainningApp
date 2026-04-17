@@ -42,6 +42,16 @@ const menuItems = [
       </svg>
     ),
   },
+  {
+    label: 'Progress',
+    to: '/progress',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
+        <path d="M3 17l4-8 4 4 4-6 4 4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M3 21h18" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ]
 
 export default function AppLayout() {

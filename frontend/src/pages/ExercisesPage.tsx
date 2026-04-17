@@ -3,20 +3,35 @@ import { useState, useMemo } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Exercise } from '../lib/workoutTypes'
 
-// ── Create exercise sheet ─────────────────────────────────────────────────────
+// ── Exercise sheet (create or edit) ──────────────────────────────────────────
 
-function CreateExerciseSheet({ onClose }: { onClose: () => void }) {
+function ExerciseSheet({ exercise, onClose }: { exercise?: Exercise; onClose: () => void }) {
   const qc = useQueryClient()
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
+  const isEdit = !!exercise
+  const [name, setName] = useState(exercise?.name ?? '')
+  const [description, setDescription] = useState(exercise?.description ?? '')
+  const [videoUrl, setVideoUrl] = useState(exercise?.videoUrl ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  const create = useMutation({
+  const save = useMutation({
     mutationFn: () =>
-      apiFetch<Exercise>('/exercises', {
-        method: 'POST',
-        body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),
-      }),
+      isEdit
+        ? apiFetch<Exercise>(`/exercises/${exercise!.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              name: name.trim(),
+              description: description.trim() || null,
+              videoUrl: videoUrl.trim() || null,
+            }),
+          })
+        : apiFetch<Exercise>('/exercises', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: name.trim(),
+              description: description.trim() || undefined,
+              videoUrl: videoUrl.trim() || undefined,
+            }),
+          }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['exercises'] })
       onClose()
@@ -27,20 +42,19 @@ function CreateExerciseSheet({ onClose }: { onClose: () => void }) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (name.trim()) create.mutate()
+    if (name.trim()) save.mutate()
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative w-full bg-white rounded-t-2xl flex flex-col">
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-gray-200" />
         </div>
 
         <div className="px-5 pb-2 border-b border-gray-100">
-          <p className="font-semibold text-gray-900">New Exercise</p>
+          <p className="font-semibold text-gray-900">{isEdit ? 'Edit Exercise' : 'New Exercise'}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-4 flex flex-col gap-4">
@@ -69,6 +83,17 @@ function CreateExerciseSheet({ onClose }: { onClose: () => void }) {
             />
           </div>
 
+          <div>
+            <label className="text-xs font-medium text-gray-500 mb-1 block">Video URL <span className="text-gray-400 font-normal">(optional)</span></label>
+            <input
+              type="url"
+              placeholder="https://youtube.com/watch?v=…"
+              value={videoUrl}
+              onChange={e => setVideoUrl(e.target.value)}
+              className="w-full bg-gray-100 rounded-xl px-4 py-3 text-sm outline-none placeholder-gray-400"
+            />
+          </div>
+
           {error && <p className="text-red-500 text-xs">{error}</p>}
 
           <div className="flex gap-3 pb-2">
@@ -81,10 +106,10 @@ function CreateExerciseSheet({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              disabled={!name.trim() || create.isPending}
+              disabled={!name.trim() || save.isPending}
               className="flex-1 py-3 rounded-2xl bg-blue-500 text-white font-semibold text-sm disabled:opacity-40"
             >
-              {create.isPending ? 'Saving…' : 'Save'}
+              {save.isPending ? 'Saving…' : 'Save'}
             </button>
           </div>
         </form>
@@ -96,12 +121,26 @@ function CreateExerciseSheet({ onClose }: { onClose: () => void }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ExercisesPage() {
+  const qc = useQueryClient()
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<Exercise | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const { data: exercises = [], isLoading } = useQuery<Exercise[]>({
     queryKey: ['exercises'],
     queryFn: () => apiFetch('/exercises'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiFetch(`/exercises/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['exercises'] })
+      setDeletingId(null)
+      setDeleteError(null)
+    },
+    onError: (e: Error) => setDeleteError(e.message),
   })
 
   const filtered = useMemo(() => {
@@ -163,12 +202,34 @@ export default function ExercisesPage() {
             {filtered.map((ex, i) => (
               <div
                 key={ex.id}
-                className={`px-4 py-3.5 ${i < filtered.length - 1 ? 'border-b border-gray-100' : ''}`}
+                className={`px-4 py-3.5 flex items-center gap-2 ${i < filtered.length - 1 ? 'border-b border-gray-100' : ''}`}
               >
-                <p className="text-sm font-semibold text-gray-900">{ex.name}</p>
-                {ex.description && (
-                  <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{ex.description}</p>
-                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900">{ex.name}</p>
+                  {ex.description && (
+                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{ex.description}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setEditing(ex)}
+                  className="p-1.5 text-gray-300 active:text-blue-400 flex-shrink-0"
+                  aria-label="Edit"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => { setDeletingId(ex.id); setDeleteError(null) }}
+                  className="p-1.5 text-gray-300 active:text-red-400 flex-shrink-0"
+                  aria-label="Delete"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               </div>
             ))}
           </div>
@@ -185,7 +246,33 @@ export default function ExercisesPage() {
         </svg>
       </button>
 
-      {creating && <CreateExerciseSheet onClose={() => setCreating(false)} />}
+      {/* ── Sheets ────────────────────────────────────────────────────── */}
+      {creating && <ExerciseSheet onClose={() => setCreating(false)} />}
+      {editing && <ExerciseSheet exercise={editing} onClose={() => setEditing(null)} />}
+
+      {deletingId !== null && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDeletingId(null)} />
+          <div className="relative w-full bg-white rounded-t-2xl px-5 py-6 flex flex-col gap-3">
+            <p className="font-semibold text-gray-900 text-center">Delete exercise?</p>
+            <p className="text-sm text-gray-400 text-center">This cannot be undone.</p>
+            {deleteError && <p className="text-red-500 text-xs text-center">{deleteError}</p>}
+            <button
+              onClick={() => deleteMutation.mutate(deletingId)}
+              disabled={deleteMutation.isPending}
+              className="w-full py-3 bg-red-500 text-white rounded-xl font-semibold active:opacity-80 disabled:opacity-40"
+            >
+              {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            </button>
+            <button
+              onClick={() => { setDeletingId(null); setDeleteError(null) }}
+              className="w-full py-3 text-gray-500 font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -93,6 +93,8 @@ WorkoutExecution (a user starts a workout on a given day)
 ---
 
 ## Current status
+
+### Done
 - [x] Project scaffold (frontend + backend folders)
 - [x] Fastify + Zod running, GET /api/ping endpoint
 - [x] Frontend pings backend via TanStack Query, displays response
@@ -100,6 +102,42 @@ WorkoutExecution (a user starts a workout on a given day)
 - [x] DB migration with full schema applied
 - [x] Auth — register, login, logout, /api/auth/me (JWT via httpOnly cookie)
 - [x] Frontend auth flow — login, sign up (with confirm password), forgot password (placeholder), protected home route
-- [ ] Workout CRUD
-- [ ] Workout execution flow
-- [ ] Progress tracking / history
+
+#### Exercise CRUD
+- [x] Global exercise library seeded from external API (766 exercises)
+- [x] List + search exercises
+- [x] Create exercise (name + description)
+- [x] Edit exercise (name + description, duplicate-name check)
+- [x] Delete exercise (blocked with 409 if exercise is used in a workout)
+
+#### Workout CRUD
+- [x] List workouts (with session count)
+- [x] Create / rename / delete workout (full cascade delete — sessions, blocks, sets, executions)
+- [x] Add / rename / delete sessions (days) within a workout
+- [x] Delete empty session directly from the session content area
+- [x] Add exercises (blocks) to a session, with superset support
+- [x] Add / edit / delete sets per block (reps+weight or duration modes)
+- [x] Granular superset editing — delete one exercise from a superset while keeping others, add new exercise to existing superset
+- [x] Video URL per exercise — embedded player (YouTube + fallback) inside the workout builder
+
+#### Workout Execution Flow
+- [x] Calendar week view with swipe navigation and dot indicators
+- [x] Plan a session on any day (pick workout → pick session)
+- [x] Remove a planned session from the calendar
+- [x] Start / End session buttons with timestamp tracking
+- [x] Log actual reps/weight/duration per set (blur-to-save)
+- [x] Logged sets turn green with a ✓ indicator
+- [x] Exercises auto-expand when session is in progress
+
+#### Progress & History
+- [x] History tab — last 30 completed sessions with date, workout, session, duration
+- [x] Summary strip — total / this month / this week counts
+- [x] Progress tab — list of exercises with logged data (sessions count, best weight)
+- [x] Exercise progression chart (recharts LineChart) — max weight or total volume over time
+- [x] Progress page in nav drawer
+
+---
+
+## Next steps
+
+

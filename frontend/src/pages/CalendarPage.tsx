@@ -66,13 +66,18 @@ function SetLogRow({
   isDuration: boolean
 }) {
   const qc = useQueryClient()
+  const [saved, setSaved] = useState(!!logged)
+
   const save = useMutation({
     mutationFn: (data: { reps?: number | null; weight?: number | null; duration?: number | null }) =>
       apiFetch(`/executions/${executionId}/log`, {
         method: 'POST',
         body: JSON.stringify({ blockItemId: item.id, ...data }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+    onSuccess: () => {
+      setSaved(true)
+      qc.invalidateQueries({ queryKey: ['calendar'] })
+    },
   })
 
   function blurReps(e: React.FocusEvent<HTMLInputElement>) {
@@ -88,9 +93,13 @@ function SetLogRow({
     save.mutate({ duration: val })
   }
 
+  const isLogged = saved || !!logged
+
   return (
-    <div className="flex items-center gap-2 py-1.5">
-      <span className="text-xs text-gray-400 w-5 text-center shrink-0">{item.order}</span>
+    <div className={`flex items-center gap-2 py-1.5 rounded-lg transition-colors ${isLogged ? 'bg-green-50' : ''}`}>
+      <span className={`text-xs w-5 text-center shrink-0 font-medium ${isLogged ? 'text-green-500' : 'text-gray-400'}`}>
+        {isLogged ? '✓' : item.order}
+      </span>
 
       {isDuration ? (
         <input
@@ -98,7 +107,7 @@ function SetLogRow({
           placeholder={item.duration ? `${item.duration}s` : 'sec'}
           defaultValue={logged?.duration ?? ''}
           onBlur={blurDuration}
-          className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+          className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'}`}
         />
       ) : (
         <>
@@ -107,7 +116,7 @@ function SetLogRow({
             placeholder={item.reps ? String(item.reps) : 'reps'}
             defaultValue={logged?.reps ?? ''}
             onBlur={blurReps}
-            className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+            className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'}`}
           />
           <span className="text-xs text-gray-300 shrink-0">×</span>
           <input
@@ -115,7 +124,7 @@ function SetLogRow({
             placeholder={item.weight ? `${item.weight}` : 'kg'}
             defaultValue={logged?.weight ?? ''}
             onBlur={blurWeight}
-            className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+            className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'}`}
           />
         </>
       )}
@@ -171,12 +180,14 @@ function ExerciseGroupRow({
   blocks,
   loggedMap,
   executionId,
+  initiallyOpen,
 }: {
   blocks: Block[]
   loggedMap: Map<number, BlockExecution>
   executionId: number
+  initiallyOpen?: boolean
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(initiallyOpen ?? false)
   const isSuperset = blocks.length > 1
   const names = blocks.map(b => b.exercise.name)
 
@@ -412,6 +423,15 @@ export default function CalendarPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
   })
 
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiFetch(`/executions/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['calendar'] })
+      setConfirmDelete(null)
+    },
+  })
+
   // Map date string → execution
   const byDate = new Map<string, CalendarExecution>()
   for (const ex of executions) {
@@ -529,13 +549,27 @@ export default function CalendarPage() {
       <div className="flex-1 px-4 pt-5 pb-10">
         {selectedExecution ? (
           <div className="flex flex-col gap-4">
-            {/* Workout + session name */}
-            <div>
-              <p className="text-xl font-bold text-gray-900">
-                {selectedExecution.workout.name}
-              </p>
-              {sessionLabel && (
-                <p className="text-sm text-gray-400 mt-0.5">{sessionLabel}</p>
+            {/* Workout + session name + delete */}
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xl font-bold text-gray-900">
+                  {selectedExecution.workout.name}
+                </p>
+                {sessionLabel && (
+                  <p className="text-sm text-gray-400 mt-0.5">{sessionLabel}</p>
+                )}
+              </div>
+              {!selectedExecution.finishedAt && (
+                <button
+                  onClick={() => setConfirmDelete(selectedExecution.id)}
+                  className="p-2 text-gray-300 active:text-red-400"
+                  aria-label="Remove session"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
               )}
             </div>
 
@@ -565,12 +599,13 @@ export default function CalendarPage() {
             {/* Exercise list */}
             {blockGroups.length > 0 && (
               <div className="bg-white rounded-2xl px-4 shadow-sm">
-                {blockGroups.map((group, i) => (
+                {blockGroups.map((group) => (
                   <ExerciseGroupRow
                     key={group[0].id}
                     blocks={group}
                     loggedMap={loggedMap}
                     executionId={selectedExecution!.id}
+                    initiallyOpen={!!selectedExecution.startedAt}
                   />
                 ))}
               </div>
@@ -603,6 +638,29 @@ export default function CalendarPage() {
           onClose={() => setPickerOpen(false)}
           onScheduled={() => qc.invalidateQueries({ queryKey: ['calendar'] })}
         />
+      )}
+
+      {confirmDelete !== null && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmDelete(null)} />
+          <div className="relative w-full bg-white rounded-t-2xl px-5 py-6 flex flex-col gap-3">
+            <p className="font-semibold text-gray-900 text-center">Remove this session?</p>
+            <p className="text-sm text-gray-400 text-center">Any logged sets will be lost.</p>
+            <button
+              onClick={() => deleteMutation.mutate(confirmDelete)}
+              disabled={deleteMutation.isPending}
+              className="w-full py-3 bg-red-500 text-white rounded-xl font-semibold active:opacity-80 disabled:opacity-40"
+            >
+              {deleteMutation.isPending ? 'Removing…' : 'Remove'}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(null)}
+              className="w-full py-3 text-gray-500 font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -11,7 +11,7 @@ export type Block = {
   id: number
   sessionId: number
   exerciseId: number
-  exercise: { id: number; name: string }
+  exercise: { id: number; name: string; videoUrl: string | null }
   instructions: string | null
   order: number
   supersetGroupId: string | null
@@ -43,6 +43,7 @@ export type Exercise = {
   id: number
   name: string
   description: string | null
+  videoUrl: string | null
 }
 
 // Blocks grouped for display — adjacent blocks sharing a supersetGroupId are merged

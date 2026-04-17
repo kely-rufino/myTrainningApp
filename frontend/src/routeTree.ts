@@ -12,6 +12,7 @@ import WorkoutsPage from './pages/WorkoutsPage'
 import WorkoutBuilderPage from './pages/WorkoutBuilderPage'
 import ExercisesPage from './pages/ExercisesPage'
 import CalendarPage from './pages/CalendarPage'
+import ProgressPage from './pages/ProgressPage'
 
 const rootRoute = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   component: () => createElement(Outlet),
@@ -92,7 +93,13 @@ const calendarRoute = createRoute({
   component: CalendarPage,
 })
 
+const progressRoute = createRoute({
+  getParentRoute: () => appLayout,
+  path: '/progress',
+  component: ProgressPage,
+})
+
 export const routeTree = rootRoute.addChildren([
   authLayout.addChildren([loginRoute, signUpRoute, forgotPasswordRoute]),
-  appLayout.addChildren([homeRoute, profileRoute, workoutsRoute, workoutBuilderRoute, exercisesRoute, calendarRoute]),
+  appLayout.addChildren([homeRoute, profileRoute, workoutsRoute, workoutBuilderRoute, exercisesRoute, calendarRoute, progressRoute]),
 ])

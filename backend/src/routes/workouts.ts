@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma.js'
 import { randomUUID } from 'crypto'
 
 const blockInclude = {
-  exercise: { select: { id: true, name: true } },
+  exercise: { select: { id: true, name: true, videoUrl: true } },
   items: { orderBy: { order: 'asc' as const } },
 }
 
@@ -92,7 +92,29 @@ export async function workoutRoutes(fastify: FastifyInstance) {
     async (req, reply) => {
       const w = await ownedWorkout(req.user.sub, req.params.id)
       if (!w) return reply.status(404).send({ error: 'Not found' } as any)
+
+      // Delete in order (no cascade in schema):
+      // block executions → items → blocks → workout executions → sessions → workout
+      const blocks = await prisma.workoutSessionBlock.findMany({
+        where: { session: { workoutId: w.id } },
+        include: { items: { select: { id: true } } },
+      })
+      const itemIds = blocks.flatMap(b => b.items.map(i => i.id))
+      if (itemIds.length > 0) {
+        await prisma.workoutSessionBlockExecution.deleteMany({
+          where: { workoutSessionBlockItemId: { in: itemIds } },
+        })
+        await prisma.workoutSessionBlockItem.deleteMany({ where: { id: { in: itemIds } } })
+      }
+      if (blocks.length > 0) {
+        await prisma.workoutSessionBlock.deleteMany({
+          where: { session: { workoutId: w.id } },
+        })
+      }
+      await prisma.workoutExecution.deleteMany({ where: { workoutId: w.id } })
+      await prisma.workoutSession.deleteMany({ where: { workoutId: w.id } })
       await prisma.workout.delete({ where: { id: w.id } })
+
       return reply.status(204).send()
     }
   )
@@ -137,6 +159,22 @@ export async function workoutRoutes(fastify: FastifyInstance) {
     async (req, reply) => {
       const s = await ownedSession(req.user.sub, req.params.id)
       if (!s) return reply.status(404).send({ error: 'Not found' } as any)
+
+      // Delete in order: executions → items → blocks → session
+      const blocks = await prisma.workoutSessionBlock.findMany({
+        where: { sessionId: s.id },
+        include: { items: { select: { id: true } } },
+      })
+      const itemIds = blocks.flatMap(b => b.items.map(i => i.id))
+      if (itemIds.length > 0) {
+        await prisma.workoutSessionBlockExecution.deleteMany({
+          where: { workoutSessionBlockItemId: { in: itemIds } },
+        })
+        await prisma.workoutSessionBlockItem.deleteMany({ where: { id: { in: itemIds } } })
+      }
+      if (blocks.length > 0) {
+        await prisma.workoutSessionBlock.deleteMany({ where: { sessionId: s.id } })
+      }
       await prisma.workoutSession.delete({ where: { id: s.id } })
       return reply.status(204).send()
     }
@@ -244,7 +282,36 @@ export async function workoutRoutes(fastify: FastifyInstance) {
     async (req, reply) => {
       const b = await ownedBlock(req.user.sub, req.params.id)
       if (!b) return reply.status(404).send({ error: 'Not found' } as any)
+      const groupId = b.supersetGroupId
+
+      // Delete in order: executions → items → block (no cascade in schema)
+      const items = await prisma.workoutSessionBlockItem.findMany({
+        where: { blockId: b.id },
+        select: { id: true },
+      })
+      if (items.length > 0) {
+        const itemIds = items.map(i => i.id)
+        await prisma.workoutSessionBlockExecution.deleteMany({
+          where: { workoutSessionBlockItemId: { in: itemIds } },
+        })
+        await prisma.workoutSessionBlockItem.deleteMany({ where: { blockId: b.id } })
+      }
       await prisma.workoutSessionBlock.delete({ where: { id: b.id } })
+
+      // If this block was part of a superset and only 1 member remains, clear its groupId
+      if (groupId) {
+        const remaining = await prisma.workoutSessionBlock.findMany({
+          where: { supersetGroupId: groupId },
+          select: { id: true },
+        })
+        if (remaining.length === 1) {
+          await prisma.workoutSessionBlock.update({
+            where: { id: remaining[0].id },
+            data: { supersetGroupId: null },
+          })
+        }
+      }
+
       return reply.status(204).send()
     }
   )
@@ -409,6 +476,19 @@ export async function workoutRoutes(fastify: FastifyInstance) {
         data: { finishedAt: new Date() },
         include: executionInclude,
       })
+    }
+  )
+
+  app.delete(
+    '/api/executions/:id',
+    { schema: { params: z.object({ id: z.coerce.number() }) } },
+    async (req, reply) => {
+      const ex = await prisma.workoutExecution.findFirst({
+        where: { id: req.params.id, userId: req.user.sub },
+      })
+      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
+      await prisma.workoutExecution.delete({ where: { id: ex.id } })
+      return reply.status(204).send()
     }
   )
 
