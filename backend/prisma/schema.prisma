@@ -8,16 +8,22 @@ datasource db {
 }
 
 model User {
-  id         Int                @id @default(autoincrement())
-  email      String             @unique
-  name       String
-  lastName   String
-  password   String
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  deletedAt  DateTime?
-  workouts   Workout[]
-  executions WorkoutExecution[]
+  id             Int                @id @default(autoincrement())
+  email          String             @unique
+  name           String
+  lastName       String
+  password       String
+  weight         Float?
+  height         Float?
+  dateOfBirth    DateTime?
+  unitPreference String?            @default("metric")
+  weekStartDay   Int?               @default(1)
+  avatar         String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  deletedAt      DateTime?
+  workouts       Workout[]
+  executions     WorkoutExecution[]
 }
 
 model Exercise {

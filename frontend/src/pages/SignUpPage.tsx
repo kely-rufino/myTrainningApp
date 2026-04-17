@@ -5,6 +5,28 @@ import { apiFetch } from '../lib/api'
 import { meQueryOptions } from '../lib/queries'
 import type { User } from '../lib/types'
 
+function hasSequentialDigits(pw: string): boolean {
+  for (let i = 0; i < pw.length - 3; i++) {
+    const a = pw.charCodeAt(i)
+    if (a < 48 || a > 57) continue
+    if (
+      pw.charCodeAt(i + 1) === a + 1 &&
+      pw.charCodeAt(i + 2) === a + 2 &&
+      pw.charCodeAt(i + 3) === a + 3
+    ) return true
+  }
+  return false
+}
+
+function passwordRules(pw: string) {
+  return {
+    length:    pw.length >= 8,
+    uppercase: /[A-Z]/.test(pw),
+    special:   /[^a-zA-Z0-9]/.test(pw),
+    noSeq:     !hasSequentialDigits(pw),
+  }
+}
+
 export default function SignUpPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -17,21 +39,25 @@ export default function SignUpPage() {
   })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [pwTouched, setPwTouched] = useState(false)
 
   const set = (field: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }))
+
+  const rules = passwordRules(form.password)
+  const allRulesPass = Object.values(rules).every(Boolean)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match')
+    if (!allRulesPass) {
+      setError('Password does not meet all requirements')
       return
     }
 
-    if (form.password.length < 8) {
-      setError('Password must be at least 8 characters')
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match')
       return
     }
 
@@ -109,11 +135,27 @@ export default function SignUpPage() {
             type="password"
             value={form.password}
             onChange={set('password')}
+            onFocus={() => setPwTouched(true)}
             placeholder="Min. 8 characters"
             required
             autoComplete="new-password"
             className="bg-gray-100 rounded-2xl px-4 py-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {pwTouched && (
+            <ul className="mt-2 flex flex-col gap-1 px-1">
+              {([
+                [rules.length,    'At least 8 characters'],
+                [rules.uppercase, 'At least 1 capital letter'],
+                [rules.special,   'At least 1 special character (!@#$…)'],
+                [rules.noSeq,     'No sequential numbers (1234, 2345…)'],
+              ] as [boolean, string][]).map(([ok, label]) => (
+                <li key={label} className={`flex items-center gap-2 text-xs ${ok ? 'text-green-600' : 'text-gray-400'}`}>
+                  <span className="text-base leading-none">{ok ? '✓' : '○'}</span>
+                  {label}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="flex flex-col gap-1">

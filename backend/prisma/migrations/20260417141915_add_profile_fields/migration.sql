@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "avatar" TEXT;
+ALTER TABLE "User" ADD COLUMN "dateOfBirth" DATETIME;
+ALTER TABLE "User" ADD COLUMN "height" REAL;
+ALTER TABLE "User" ADD COLUMN "unitPreference" TEXT DEFAULT 'metric';
+ALTER TABLE "User" ADD COLUMN "weekStartDay" INTEGER DEFAULT 1;
+ALTER TABLE "User" ADD COLUMN "weight" REAL;
