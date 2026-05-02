@@ -1,14 +1,28 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import { apiFetch } from '../lib/api'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // TODO: wire up email delivery
-    setSubmitted(true)
+    setError(null)
+    setLoading(true)
+    try {
+      await apiFetch('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      })
+      setSubmitted(true)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -16,9 +30,7 @@ export default function ForgotPasswordPage() {
       <div className="mb-10">
         <p className="text-blue-600 font-semibold text-sm uppercase tracking-widest mb-2">MyTraining</p>
         <h1 className="text-3xl font-bold text-gray-900">Reset password</h1>
-        <p className="text-gray-500 mt-1">
-          We'll send you a link to reset your password.
-        </p>
+        <p className="text-gray-500 mt-1">We'll send you a link to reset your password.</p>
       </div>
 
       {submitted ? (
@@ -44,11 +56,14 @@ export default function ForgotPasswordPage() {
             />
           </div>
 
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-semibold py-4 rounded-2xl mt-2 active:scale-95 transition-transform"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-semibold py-4 rounded-2xl mt-2 active:scale-95 transition-transform disabled:opacity-40"
           >
-            Send reset link
+            {loading ? 'Sending…' : 'Send reset link'}
           </button>
         </form>
       )}

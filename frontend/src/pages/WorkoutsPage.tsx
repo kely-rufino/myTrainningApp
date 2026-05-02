@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { apiFetch } from '../lib/api'
 import type { WorkoutListItem } from '../lib/workoutTypes'
+import { useToast } from '../lib/toast'
 
 function workoutsQueryOptions() {
   return {
@@ -14,6 +15,7 @@ function workoutsQueryOptions() {
 export default function WorkoutsPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
+  const toast = useToast()
   const { data: workouts = [], isLoading } = useQuery(workoutsQueryOptions())
   const [creating, setCreating] = useState(false)
   const [newName, setNewName] = useState('')
@@ -27,6 +29,7 @@ export default function WorkoutsPage() {
       setCreating(false)
       setNewName('')
     },
+    onError: () => toast.show('Failed to create workout. Please try again.'),
   })
 
   const deleteMutation = useMutation({
@@ -36,6 +39,7 @@ export default function WorkoutsPage() {
       qc.invalidateQueries({ queryKey: ['workouts'] })
       setDeletingId(null)
     },
+    onError: () => toast.show('Failed to delete workout. Please try again.'),
   })
 
   function handleCreate(e: React.FormEvent) {
@@ -52,10 +56,18 @@ export default function WorkoutsPage() {
       )}
 
       {!isLoading && workouts.length === 0 && !creating && (
-        <div className="bg-white rounded-2xl px-5 py-10 shadow-sm text-center">
-          <p className="text-4xl mb-3">🏋️</p>
-          <p className="font-semibold text-gray-900">No workouts yet</p>
-          <p className="text-gray-400 text-sm mt-1">Tap + to create your first workout plan</p>
+        <div className="bg-white rounded-2xl px-5 py-10 shadow-sm text-center flex flex-col items-center gap-4">
+          <p className="text-4xl">🏋️</p>
+          <div>
+            <p className="font-semibold text-gray-900">No workouts yet</p>
+            <p className="text-gray-400 text-sm mt-1">Build your first workout plan to get started</p>
+          </div>
+          <button
+            onClick={() => setCreating(true)}
+            className="px-6 py-3 bg-blue-500 text-white rounded-2xl font-semibold text-sm active:opacity-80"
+          >
+            Create Workout
+          </button>
         </div>
       )}
 

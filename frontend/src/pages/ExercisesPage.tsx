@@ -118,6 +118,58 @@ function ExerciseSheet({ exercise, onClose }: { exercise?: Exercise; onClose: ()
   )
 }
 
+// ── Exercise row ──────────────────────────────────────────────────────────────
+
+function ExerciseRow({
+  ex,
+  isLast,
+  onEdit,
+  onDelete,
+}: {
+  ex: Exercise
+  isLast: boolean
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className={`px-4 py-3.5 ${!isLast ? 'border-b border-gray-100' : ''}`}>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => ex.description && setExpanded(o => !o)}
+          className="flex-1 min-w-0 text-left flex items-center gap-1"
+        >
+          <p className="text-sm font-semibold text-gray-900 truncate">{ex.name}</p>
+          {ex.description && (
+            <svg
+              className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          )}
+        </button>
+        <button onClick={onEdit} className="p-1.5 text-gray-300 active:text-blue-400 shrink-0" aria-label="Edit">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+        <button onClick={onDelete} className="p-1.5 text-gray-300 active:text-red-400 shrink-0" aria-label="Delete">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+      {expanded && ex.description && (
+        <p className="text-sm text-gray-500 mt-2 leading-snug">{ex.description}</p>
+      )}
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ExercisesPage() {
@@ -200,37 +252,13 @@ export default function ExercisesPage() {
         ) : (
           <div className="flex flex-col gap-0 bg-white rounded-2xl shadow-sm overflow-hidden">
             {filtered.map((ex, i) => (
-              <div
+              <ExerciseRow
                 key={ex.id}
-                className={`px-4 py-3.5 flex items-center gap-2 ${i < filtered.length - 1 ? 'border-b border-gray-100' : ''}`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{ex.name}</p>
-                  {ex.description && (
-                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{ex.description}</p>
-                  )}
-                </div>
-                <button
-                  onClick={() => setEditing(ex)}
-                  className="p-1.5 text-gray-300 active:text-blue-400 flex-shrink-0"
-                  aria-label="Edit"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => { setDeletingId(ex.id); setDeleteError(null) }}
-                  className="p-1.5 text-gray-300 active:text-red-400 flex-shrink-0"
-                  aria-label="Delete"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
+                ex={ex}
+                isLast={i === filtered.length - 1}
+                onEdit={() => setEditing(ex)}
+                onDelete={() => { setDeletingId(ex.id); setDeleteError(null) }}
+              />
             ))}
           </div>
         )}

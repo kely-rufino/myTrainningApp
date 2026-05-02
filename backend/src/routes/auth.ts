@@ -2,7 +2,11 @@ import type { FastifyInstance } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
+import crypto from 'node:crypto'
+import { Resend } from 'resend'
 import { prisma } from '../lib/prisma'
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 function hasSequentialDigits(pw: string): boolean {
   for (let i = 0; i < pw.length - 3; i++) {
@@ -161,6 +165,86 @@ export async function authRoutes(fastify: FastifyInstance) {
         },
       })
       return { id: user.id, email: user.email, name: user.name, lastName: user.lastName, weight: user.weight, height: user.height, dateOfBirth: user.dateOfBirth?.toISOString().slice(0, 10) ?? null, unitPreference: user.unitPreference, weekStartDay: user.weekStartDay, avatar: user.avatar }
+    }
+  )
+
+  // ── Forgot / Reset password ───────────────────────────────────────────────
+
+  app.post(
+    '/api/auth/forgot-password',
+    {
+      schema: {
+        body: z.object({ email: z.email() }),
+        response: { 200: z.object({ ok: z.boolean() }) },
+      },
+    },
+    async (request, reply) => {
+      const { email } = request.body
+      const user = await prisma.user.findUnique({ where: { email } })
+      // Always return 200 — don't reveal whether the email exists
+      if (!user) return { ok: true }
+
+      const token = crypto.randomBytes(32).toString('hex')
+      const expiry = new Date(Date.now() + 1000 * 60 * 60) // 1 hour
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { resetToken: token, resetTokenExpiry: expiry },
+      })
+
+      const appUrl = process.env.APP_URL ?? 'http://localhost:5173'
+      const resetUrl = `${appUrl}/reset-password?token=${token}`
+
+      const result = await resend.emails.send({
+        from: process.env.RESEND_FROM ?? 'noreply@intiefkal.resend.app',
+        to: email,
+        subject: 'Reset your MyTraining password',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px">
+            <h2 style="color:#1d4ed8;margin-bottom:8px">Reset your password</h2>
+            <p style="color:#374151">Hi ${user.name},</p>
+            <p style="color:#374151">Click the button below to set a new password. This link expires in 1 hour.</p>
+            <a href="${resetUrl}"
+               style="display:inline-block;margin:24px 0;padding:14px 28px;background:#2563eb;color:#fff;border-radius:12px;text-decoration:none;font-weight:600">
+              Reset password
+            </a>
+            <p style="color:#9ca3af;font-size:13px">If you didn't request this, you can ignore this email.</p>
+          </div>
+        `,
+      })
+      console.log('Resend result:', JSON.stringify(result))
+
+      return { ok: true }
+    }
+  )
+
+  app.post(
+    '/api/auth/reset-password',
+    {
+      schema: {
+        body: z.object({
+          token: z.string(),
+          password: passwordSchema,
+        }),
+        response: { 200: z.object({ ok: z.boolean() }) },
+      },
+    },
+    async (request, reply) => {
+      const { token, password } = request.body
+      const user = await prisma.user.findFirst({
+        where: {
+          resetToken: token,
+          resetTokenExpiry: { gt: new Date() },
+        },
+      })
+      if (!user) {
+        return reply.status(400).send({ error: 'Invalid or expired reset token' } as any)
+      }
+      const hashed = await bcrypt.hash(password, 10)
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashed, resetToken: null, resetTokenExpiry: null },
+      })
+      return { ok: true }
     }
   )
 

@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Block, Workout, WorkoutListItem } from '../lib/workoutTypes'
+import { useToast } from '../lib/toast'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,23 @@ function isSameDay(a: Date, b: Date) {
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+function useElapsed(startedAt: string | null) {
+  const [elapsed, setElapsed] = useState(0)
+  useEffect(() => {
+    if (!startedAt) { setElapsed(0); return }
+    const tick = () => setElapsed(Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [startedAt])
+  if (!startedAt) return null
+  const h = Math.floor(elapsed / 3600)
+  const m = Math.floor((elapsed % 3600) / 60)
+  const s = elapsed % 60
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`
+  return `${m}m ${String(s).padStart(2, '0')}s`
+}
+
 // ── Exercise log components ───────────────────────────────────────────────────
 
 function SetLogRow({
@@ -59,13 +77,16 @@ function SetLogRow({
   logged,
   executionId,
   isDuration,
+  sessionStarted,
 }: {
   item: Block['items'][number]
   logged: BlockExecution | undefined
   executionId: number
   isDuration: boolean
+  sessionStarted: boolean
 }) {
   const qc = useQueryClient()
+  const toast = useToast()
   const [saved, setSaved] = useState(!!logged)
 
   const save = useMutation({
@@ -78,6 +99,7 @@ function SetLogRow({
       setSaved(true)
       qc.invalidateQueries({ queryKey: ['calendar'] })
     },
+    onError: () => toast.show('Failed to save set'),
   })
 
   function blurReps(e: React.FocusEvent<HTMLInputElement>) {
@@ -94,6 +116,7 @@ function SetLogRow({
   }
 
   const isLogged = saved || !!logged
+  const disabled = !sessionStarted
 
   return (
     <div className={`flex items-center gap-2 py-1.5 rounded-lg transition-colors ${isLogged ? 'bg-green-50' : ''}`}>
@@ -107,7 +130,8 @@ function SetLogRow({
           placeholder={item.duration ? `${item.duration}s` : 'sec'}
           defaultValue={logged?.duration ?? ''}
           onBlur={blurDuration}
-          className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'}`}
+          disabled={disabled}
+          className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'} disabled:opacity-40 disabled:cursor-not-allowed`}
         />
       ) : (
         <>
@@ -116,7 +140,8 @@ function SetLogRow({
             placeholder={item.reps ? String(item.reps) : 'reps'}
             defaultValue={logged?.reps ?? ''}
             onBlur={blurReps}
-            className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'}`}
+            disabled={disabled}
+            className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'} disabled:opacity-40 disabled:cursor-not-allowed`}
           />
           <span className="text-xs text-gray-300 shrink-0">×</span>
           <input
@@ -124,7 +149,8 @@ function SetLogRow({
             placeholder={item.weight ? `${item.weight}` : 'kg'}
             defaultValue={logged?.weight ?? ''}
             onBlur={blurWeight}
-            className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'}`}
+            disabled={disabled}
+            className={`flex-1 min-w-0 rounded-lg px-2 py-1.5 text-sm text-center outline-none ${isLogged ? 'bg-green-100' : 'bg-gray-100'} disabled:opacity-40 disabled:cursor-not-allowed`}
           />
         </>
       )}
@@ -136,20 +162,44 @@ function BlockLog({
   block,
   loggedMap,
   executionId,
+  sessionStarted,
 }: {
   block: Block
   loggedMap: Map<number, BlockExecution>
   executionId: number
+  sessionStarted: boolean
 }) {
+  const qc = useQueryClient()
   const isDuration = block.items.some(i => i.duration !== null)
+
+  const toast = useToast()
+
+  const saveNote = useMutation({
+    mutationFn: (notes: string | null) =>
+      apiFetch(`/blocks/${block.id}`, { method: 'PATCH', body: JSON.stringify({ notes }) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['calendar'] }); toast.show('Note saved', 'success') },
+    onError: () => toast.show('Failed to save note'),
+  })
+
+  const autoHeight = useCallback((el: HTMLTextAreaElement | null) => {
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }
+  }, [])
+
   return (
     <div>
+      {/* Planned instructions — read-only */}
+      {block.instructions && (
+        <p className="text-sm text-gray-500 mb-3 whitespace-pre-line leading-snug">
+          {block.instructions}
+        </p>
+      )}
+
       {block.items.length === 0 ? (
         <p className="text-xs text-gray-400 py-1">No sets planned</p>
       ) : (
         <>
           {/* Column headers */}
-          <div className="flex items-center gap-2 mb-1 mt-2">
+          <div className="flex items-center gap-2 mb-1">
             <span className="w-5 shrink-0" />
             {isDuration ? (
               <span className="flex-1 text-center text-xs text-gray-400">Seconds</span>
@@ -168,10 +218,23 @@ function BlockLog({
               logged={loggedMap.get(item.id)}
               executionId={executionId}
               isDuration={isDuration}
+              sessionStarted={sessionStarted}
             />
           ))}
         </>
       )}
+
+      {/* Free-form note — editable during session */}
+      <textarea
+        ref={autoHeight}
+        placeholder="Add exercise note"
+        defaultValue={block.notes ?? ''}
+        rows={1}
+        onChange={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+        onBlur={e => saveNote.mutate(e.target.value || null)}
+        className="w-full mt-3 text-sm text-gray-500 placeholder-gray-300 bg-gray-50 rounded-xl px-4 py-3 resize-none outline-none focus:bg-gray-100 leading-snug overflow-hidden"
+        style={{ minHeight: '2.75rem' }}
+      />
     </div>
   )
 }
@@ -181,11 +244,13 @@ function ExerciseGroupRow({
   loggedMap,
   executionId,
   initiallyOpen,
+  sessionStarted,
 }: {
   blocks: Block[]
   loggedMap: Map<number, BlockExecution>
   executionId: number
   initiallyOpen?: boolean
+  sessionStarted: boolean
 }) {
   const [open, setOpen] = useState(initiallyOpen ?? false)
   const isSuperset = blocks.length > 1
@@ -221,10 +286,10 @@ function ExerciseGroupRow({
             ? blocks.map(b => (
                 <div key={b.id} className="border-l-4 border-blue-300 pl-3">
                   <p className="text-xs font-semibold text-gray-500 mb-1">{b.exercise.name}</p>
-                  <BlockLog block={b} loggedMap={loggedMap} executionId={executionId} />
+                  <BlockLog block={b} loggedMap={loggedMap} executionId={executionId} sessionStarted={sessionStarted} />
                 </div>
               ))
-            : <BlockLog block={blocks[0]} loggedMap={loggedMap} executionId={executionId} />
+            : <BlockLog block={blocks[0]} loggedMap={loggedMap} executionId={executionId} sessionStarted={sessionStarted} />
           }
         </div>
       )}
@@ -365,6 +430,7 @@ function SessionPickerSheet({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
+  const toast = useToast()
   const today = useMemo(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
@@ -416,11 +482,13 @@ export default function CalendarPage() {
   const startMutation = useMutation({
     mutationFn: (id: number) => apiFetch<CalendarExecution>(`/executions/${id}/start`, { method: 'PATCH' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+    onError: () => toast.show('Failed to start session'),
   })
 
   const finishMutation = useMutation({
     mutationFn: (id: number) => apiFetch<CalendarExecution>(`/executions/${id}/finish`, { method: 'PATCH' }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+    onError: () => toast.show('Failed to end session'),
   })
 
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
@@ -430,6 +498,7 @@ export default function CalendarPage() {
       qc.invalidateQueries({ queryKey: ['calendar'] })
       setConfirmDelete(null)
     },
+    onError: () => toast.show('Failed to remove session'),
   })
 
   // Map date string → execution
@@ -448,6 +517,8 @@ export default function CalendarPage() {
   const sessionLabel = selectedExecution?.session
     ? selectedExecution.session.name ?? `Day ${selectedExecution.session.order}`
     : null
+
+  const elapsed = useElapsed(selectedExecution?.startedAt ?? null)
 
   // Group blocks by supersetGroupId for display
   const blockGroups = useMemo(() => {
@@ -588,7 +659,7 @@ export default function CalendarPage() {
                 disabled={finishMutation.isPending}
                 className="w-full py-3.5 bg-red-500 text-white rounded-2xl font-semibold text-sm active:opacity-80 disabled:opacity-40 transition-opacity"
               >
-                {finishMutation.isPending ? 'Finishing…' : 'End Session'}
+                {finishMutation.isPending ? 'Finishing…' : elapsed ? `End Session (${elapsed})` : 'End Session'}
               </button>
             ) : (
               <div className="w-full py-3.5 bg-green-50 border border-green-200 rounded-2xl text-center">
@@ -606,6 +677,7 @@ export default function CalendarPage() {
                     loggedMap={loggedMap}
                     executionId={selectedExecution!.id}
                     initiallyOpen={!!selectedExecution.startedAt}
+                    sessionStarted={!!selectedExecution.startedAt}
                   />
                 ))}
               </div>

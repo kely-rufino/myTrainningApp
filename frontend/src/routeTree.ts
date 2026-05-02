@@ -5,6 +5,7 @@ import { meQueryOptions } from './lib/queries'
 import LoginPage from './pages/LoginPage'
 import SignUpPage from './pages/SignUpPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import HomePage from './pages/HomePage'
 import AppLayout from './components/AppLayout'
 import ProfilePage from './pages/ProfilePage'
@@ -41,6 +42,15 @@ const forgotPasswordRoute = createRoute({
   getParentRoute: () => authLayout,
   path: '/forgot-password',
   component: ForgotPasswordPage,
+})
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => authLayout,
+  path: '/reset-password',
+  component: ResetPasswordPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: (search.token as string) ?? '',
+  }),
 })
 
 // Protected layout — redirects to /login if not authenticated
@@ -100,6 +110,6 @@ const progressRoute = createRoute({
 })
 
 export const routeTree = rootRoute.addChildren([
-  authLayout.addChildren([loginRoute, signUpRoute, forgotPasswordRoute]),
+  authLayout.addChildren([loginRoute, signUpRoute, forgotPasswordRoute, resetPasswordRoute]),
   appLayout.addChildren([homeRoute, profileRoute, workoutsRoute, workoutBuilderRoute, exercisesRoute, calendarRoute, progressRoute]),
 ])

@@ -56,9 +56,11 @@ export async function workoutRoutes(fastify: FastifyInstance) {
 
   app.post(
     '/api/workouts',
-    { schema: { body: z.object({ name: z.string().min(1) }) } },
+    { schema: { body: z.object({ name: z.string().min(1), instructions: z.string().optional() }) } },
     async (req, reply) => {
-      const w = await prisma.workout.create({ data: { name: req.body.name, userId: req.user.sub } })
+      const w = await prisma.workout.create({
+        data: { name: req.body.name, instructions: req.body.instructions, userId: req.user.sub },
+      })
       return reply.status(201).send(w)
     }
   )
@@ -78,11 +80,22 @@ export async function workoutRoutes(fastify: FastifyInstance) {
 
   app.patch(
     '/api/workouts/:id',
-    { schema: { params: z.object({ id: z.coerce.number() }), body: z.object({ name: z.string().min(1) }) } },
+    {
+      schema: {
+        params: z.object({ id: z.coerce.number() }),
+        body: z.object({ name: z.string().min(1).optional(), instructions: z.string().nullable().optional() }),
+      },
+    },
     async (req, reply) => {
       const w = await ownedWorkout(req.user.sub, req.params.id)
       if (!w) return reply.status(404).send({ error: 'Not found' } as any)
-      return prisma.workout.update({ where: { id: w.id }, data: { name: req.body.name } })
+      return prisma.workout.update({
+        where: { id: w.id },
+        data: {
+          ...(req.body.name !== undefined && { name: req.body.name }),
+          ...(req.body.instructions !== undefined && { instructions: req.body.instructions }),
+        },
+      })
     }
   )
 
@@ -259,6 +272,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
         body: z.object({
           exerciseId: z.number().optional(),
           instructions: z.string().nullable().optional(),
+          notes: z.string().nullable().optional(),
         }),
       },
     },
@@ -270,6 +284,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
         data: {
           ...(req.body.exerciseId !== undefined && { exerciseId: req.body.exerciseId }),
           ...(req.body.instructions !== undefined && { instructions: req.body.instructions }),
+          ...(req.body.notes !== undefined && { notes: req.body.notes }),
         },
         include: blockInclude,
       })
@@ -327,6 +342,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
           reps: z.number().int().positive().nullable().optional(),
           weight: z.number().nonnegative().nullable().optional(),
           duration: z.number().int().positive().nullable().optional(),
+          instructions: z.string().optional(),
         }),
       },
     },
@@ -339,6 +355,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
           reps: req.body.reps,
           weight: req.body.weight,
           duration: req.body.duration,
+          instructions: req.body.instructions,
           order: b._count.items + 1,
         },
       })
@@ -355,6 +372,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
           reps: z.number().int().positive().nullable().optional(),
           weight: z.number().nonnegative().nullable().optional(),
           duration: z.number().int().positive().nullable().optional(),
+          instructions: z.string().nullable().optional(),
         }),
       },
     },
@@ -363,7 +381,12 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       if (!item) return reply.status(404).send({ error: 'Not found' } as any)
       return prisma.workoutSessionBlockItem.update({
         where: { id: item.id },
-        data: { reps: req.body.reps, weight: req.body.weight, duration: req.body.duration },
+        data: {
+          reps: req.body.reps,
+          weight: req.body.weight,
+          duration: req.body.duration,
+          ...(req.body.instructions !== undefined && { instructions: req.body.instructions }),
+        },
       })
     }
   )

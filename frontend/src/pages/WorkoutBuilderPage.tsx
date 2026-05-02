@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { workoutBuilderRoute } from '../routeTree'
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Workout, Session, Block, SetItem, Exercise } from '../lib/workoutTypes'
 import { groupBlocks } from '../lib/workoutTypes'
 import ExercisePicker from '../components/ExercisePicker'
+import { useToast } from '../lib/toast'
 
 function workoutQueryOptions(id: number) {
   return {
@@ -29,40 +30,42 @@ function SetRow({
 }) {
   const isDuration = mode === 'duration'
   return (
-    <div className="flex items-center gap-2 py-1">
-      <span className="text-xs text-gray-400 w-5 text-center">{set.order}</span>
-      {isDuration ? (
-        <input
-          type="number"
-          placeholder="sec"
-          defaultValue={set.duration ?? ''}
-          onBlur={e => onUpdate({ duration: e.target.value ? Number(e.target.value) : null })}
-          className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
-        />
-      ) : (
-        <>
+    <div className="py-1">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400 w-5 text-center">{set.order}</span>
+        {isDuration ? (
           <input
             type="number"
-            placeholder="reps"
-            defaultValue={set.reps ?? ''}
-            onBlur={e => onUpdate({ reps: e.target.value ? Number(e.target.value) : null })}
+            placeholder="sec"
+            defaultValue={set.duration ?? ''}
+            onBlur={e => onUpdate({ duration: e.target.value ? Number(e.target.value) : null })}
             className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
           />
-          <span className="text-xs text-gray-400">×</span>
-          <input
-            type="number"
-            placeholder="kg"
-            defaultValue={set.weight ?? ''}
-            onBlur={e => onUpdate({ weight: e.target.value ? Number(e.target.value) : null })}
-            className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
-          />
-        </>
-      )}
-      <button onClick={onDelete} className="text-gray-300 active:text-red-400 p-1">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+        ) : (
+          <>
+            <input
+              type="number"
+              placeholder="reps"
+              defaultValue={set.reps ?? ''}
+              onBlur={e => onUpdate({ reps: e.target.value ? Number(e.target.value) : null })}
+              className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+            />
+            <span className="text-xs text-gray-400">×</span>
+            <input
+              type="number"
+              placeholder="kg"
+              defaultValue={set.weight ?? ''}
+              onBlur={e => onUpdate({ weight: e.target.value ? Number(e.target.value) : null })}
+              className="flex-1 min-w-0 bg-gray-100 rounded-lg px-2 py-1.5 text-sm text-center outline-none"
+            />
+          </>
+        )}
+        <button onClick={onDelete} className="text-gray-300 active:text-red-400 p-1">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
   )
 }
@@ -145,34 +148,51 @@ function BlockCard({
   inSuperset?: boolean
 }) {
   const qc = useQueryClient()
+  const toast = useToast()
   const inv = () => qc.invalidateQueries({ queryKey: ['workout', workoutId] })
 
   const addSet = useMutation({
     mutationFn: (data: { reps?: number | null; weight?: number | null; duration?: number | null }) =>
       apiFetch(`/blocks/${block.id}/items`, { method: 'POST', body: JSON.stringify(data) }),
     onSuccess: inv,
+    onError: () => toast.show('Failed to add set'),
   })
 
   const updateSet = useMutation({
     mutationFn: ({ id, data }: { id: number; data: object }) =>
       apiFetch(`/items/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
     onSuccess: inv,
+    onError: () => toast.show('Failed to save set'),
   })
 
   const deleteSet = useMutation({
     mutationFn: (id: number) => apiFetch(`/items/${id}`, { method: 'DELETE' }),
     onSuccess: inv,
+    onError: () => toast.show('Failed to delete set'),
   })
+
+  const updateBlock = useMutation({
+    mutationFn: (data: { instructions?: string | null }) =>
+      apiFetch(`/blocks/${block.id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    onSuccess: () => { inv(); toast.show('Note saved', 'success') },
+    onError: () => toast.show('Failed to save note'),
+  })
+
+  const autoHeight = useCallback((el: HTMLTextAreaElement | null) => {
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }
+  }, [])
 
   const deleteBlock = useMutation({
     mutationFn: () => apiFetch(`/blocks/${block.id}`, { method: 'DELETE' }),
     onSuccess: inv,
+    onError: () => toast.show('Failed to delete exercise'),
   })
 
   const [mode, setMode] = useState<'reps' | 'duration'>(
     block.items.some(i => i.duration !== null) ? 'duration' : 'reps'
   )
   const [videoOpen, setVideoOpen] = useState(false)
+  const [noteOpen, setNoteOpen] = useState(!!block.instructions)
 
   function addNewSet() {
     if (mode === 'duration') addSet.mutate({ duration: null })
@@ -183,7 +203,18 @@ function BlockCard({
     <div className="bg-white rounded-xl px-4 py-3 shadow-sm">
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
-        <p className="font-semibold text-gray-900 text-sm leading-tight flex-1 pr-2">{block.exercise.name}</p>
+        <button
+          onClick={() => setNoteOpen(o => !o)}
+          className="font-semibold text-gray-900 text-sm leading-tight flex-1 pr-2 text-left flex items-center gap-1"
+        >
+          {block.exercise.name}
+          <svg
+            className={`w-3 h-3 text-gray-400 shrink-0 transition-transform ${noteOpen ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
         <div className="flex items-center gap-1 shrink-0">
           {block.exercise.videoUrl && (
             <button
@@ -208,8 +239,22 @@ function BlockCard({
         </div>
       </div>
 
+      {/* Exercise note — toggled by clicking the exercise name */}
+      {noteOpen && (
+        <textarea
+          ref={autoHeight}
+          placeholder="Add exercise note"
+          defaultValue={block.instructions ?? ''}
+          rows={1}
+          onChange={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+          onBlur={e => updateBlock.mutate({ instructions: e.target.value || null })}
+          className="w-full mb-3 text-sm text-gray-500 placeholder-gray-300 bg-gray-50 rounded-xl px-4 py-3 resize-none outline-none focus:bg-gray-100 leading-snug overflow-hidden"
+          style={{ minHeight: '2.75rem' }}
+        />
+      )}
+
       {/* Mode toggle */}
-      <div className="flex gap-1 mb-3">
+      <div className="flex gap-1 mb-2">
         {(['reps', 'duration'] as const).map(m => (
           <button
             key={m}
@@ -390,6 +435,7 @@ export default function WorkoutBuilderPage() {
   const qc = useQueryClient()
   const inv = () => qc.invalidateQueries({ queryKey: ['workout', workoutId] })
 
+  const toast = useToast()
   const { data: workout, isLoading } = useQuery(workoutQueryOptions(workoutId))
   const [activeSessionIdx, setActiveSessionIdx] = useState(0)
   const [editingName, setEditingName] = useState(false)
@@ -406,18 +452,32 @@ export default function WorkoutBuilderPage() {
       inv()
       setActiveSessionIdx(workout?.sessions.length ?? 0)
     },
+    onError: () => toast.show('Failed to add day'),
   })
 
   const updateName = useMutation({
     mutationFn: (name: string) =>
       apiFetch(`/workouts/${workoutId}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
     onSuccess: () => { inv(); setEditingName(false) },
+    onError: () => toast.show('Failed to save name'),
   })
+
+  const updateInstructions = useMutation({
+    mutationFn: (instructions: string | null) =>
+      apiFetch(`/workouts/${workoutId}`, { method: 'PATCH', body: JSON.stringify({ instructions }) }),
+    onSuccess: () => { inv(); toast.show('Instructions saved', 'success') },
+    onError: () => toast.show('Failed to save instructions'),
+  })
+
+  const autoHeightInstr = useCallback((el: HTMLTextAreaElement | null) => {
+    if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' }
+  }, [])
 
   const renameSession = useMutation({
     mutationFn: ({ id, name }: { id: number; name: string }) =>
       apiFetch(`/sessions/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
     onSuccess: () => { inv(); setRenamingSession(null) },
+    onError: () => toast.show('Failed to rename day'),
   })
 
   const deleteSession = useMutation({
@@ -429,6 +489,7 @@ export default function WorkoutBuilderPage() {
       const idx = workout?.sessions.findIndex(s => s.id === deletedId) ?? 0
       setActiveSessionIdx(Math.max(0, idx - 1))
     },
+    onError: () => toast.show('Failed to delete day'),
   })
 
 if (isLoading) {
@@ -476,6 +537,16 @@ if (isLoading) {
             {workout.name}
           </button>
         )}
+        <textarea
+          ref={autoHeightInstr}
+          placeholder="Add workout instructions..."
+          defaultValue={workout.instructions ?? ''}
+          rows={1}
+          onChange={e => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px' }}
+          onBlur={e => updateInstructions.mutate(e.target.value || null)}
+          className="w-full mt-1 text-sm text-gray-500 placeholder-gray-300 bg-transparent resize-none outline-none border-b border-transparent focus:border-gray-200 leading-snug overflow-hidden"
+          style={{ minHeight: '1.25rem' }}
+        />
       </div>
 
       {/* Session tabs */}

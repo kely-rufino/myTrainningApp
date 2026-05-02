@@ -18,7 +18,9 @@ model User {
   dateOfBirth    DateTime?
   unitPreference String?            @default("metric")
   weekStartDay   Int?               @default(1)
-  avatar         String?
+  avatar             String?
+  resetToken         String?
+  resetTokenExpiry   DateTime?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
   deletedAt      DateTime?
@@ -36,9 +38,10 @@ model Exercise {
 }
 
 model Workout {
-  id         Int                @id @default(autoincrement())
-  name       String
-  userId     Int
+  id           Int                @id @default(autoincrement())
+  name         String
+  instructions String?
+  userId       Int
   user       User               @relation(fields: [userId], references: [id])
   sessions   WorkoutSession[]
   executions WorkoutExecution[]
@@ -59,6 +62,7 @@ model WorkoutSessionBlock {
   sessionId      Int
   exerciseId     Int
   instructions   String?
+  notes          String?
   order          Int
   supersetGroupId String?
   session      WorkoutSession            @relation(fields: [sessionId], references: [id])
@@ -67,12 +71,13 @@ model WorkoutSessionBlock {
 }
 
 model WorkoutSessionBlockItem {
-  id         Int                            @id @default(autoincrement())
-  blockId    Int
-  reps       Int?
-  weight     Float?
-  duration   Int? // seconds
-  order      Int
+  id           Int                            @id @default(autoincrement())
+  blockId      Int
+  reps         Int?
+  weight       Float?
+  duration     Int? // seconds
+  instructions String?
+  order        Int
   block      WorkoutSessionBlock            @relation(fields: [blockId], references: [id])
   executions WorkoutSessionBlockExecution[]
 }

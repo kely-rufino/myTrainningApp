@@ -140,4 +140,16 @@ WorkoutExecution (a user starts a workout on a given day)
 
 ## Next steps
 
+- [x] Add an instructions field to workout creation — an optional text field at the workout level and at each individual set level
+- [x] When no workouts are available, replace the empty state message with a create workout prompt and a button
+- [x] Show error messages when requests fail — network errors or server issues should surface a visible message to the user
+- [x] Add per-exercise instructions inside a workout — each exercise block has its own instruction text field
+- [x] When a session is started, show a live countdown in the End Session button (e.g. "End Session (46m 32s)")
+- [x] Fix mobile viewport shifting when focusing form fields — the page should stay static and not zoom or shift horizontally
+- [x] Prevent users from entering set data before a session has been started
+- [ ] Forgot password flow — allow users to reset their password (e.g. via email link or a reset token)
+- [x] Add show/hide password toggle on the sign in and sign up forms
 
+## Next version
+
+- [ ] Allow reordering exercises within a session

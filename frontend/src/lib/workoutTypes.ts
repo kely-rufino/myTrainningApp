@@ -4,6 +4,7 @@ export type SetItem = {
   reps: number | null
   weight: number | null
   duration: number | null
+  instructions: string | null
   order: number
 }
 
@@ -13,6 +14,7 @@ export type Block = {
   exerciseId: number
   exercise: { id: number; name: string; videoUrl: string | null }
   instructions: string | null
+  notes: string | null
   order: number
   supersetGroupId: string | null
   items: SetItem[]
@@ -29,6 +31,7 @@ export type Session = {
 export type Workout = {
   id: number
   name: string
+  instructions: string | null
   userId: number
   sessions: Session[]
 }

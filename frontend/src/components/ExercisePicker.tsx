@@ -133,9 +133,6 @@ export default function ExercisePicker({ onSelect, onClose }: Props) {
               className="w-full px-4 py-3.5 text-left border-b border-gray-50 active:bg-gray-50 last:border-0"
             >
               <p className="font-medium text-gray-900 text-sm">{ex.name}</p>
-              {ex.description && (
-                <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{ex.description}</p>
-              )}
             </button>
           ))}
           {filtered.length === 0 && (
