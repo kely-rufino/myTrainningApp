@@ -11,6 +11,9 @@ import { workoutRoutes } from './routes/workouts.js'
 import { exerciseRoutes } from './routes/exercises.js'
 import { progressRoutes } from './routes/progress.js'
 
+import './instrument.js'
+import * as Sentry from '@sentry/node'
+
 export async function buildApp() {
   const app = Fastify({
     logger: process.env.NODE_ENV === 'test'
@@ -29,6 +32,7 @@ export async function buildApp() {
   app.setSerializerCompiler(serializerCompiler)
 
   await app.register(cors, { origin: true, credentials: true })
+  Sentry.setupFastifyErrorHandler(app)
   await app.register(errorHandler)
   await app.register(authPlugin)
   await app.register(authRoutes)

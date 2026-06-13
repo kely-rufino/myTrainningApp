@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
+import * as Sentry from '@sentry/node'
 
 function isPrismaKnownError(err: unknown): err is Error & { code: string } {
   return err instanceof Error && err.constructor.name === 'PrismaClientKnownRequestError' && 'code' in err
@@ -30,6 +31,7 @@ export default fp(async (fastify: FastifyInstance) => {
 
     if (statusCode >= 500) {
       request.log.error({ err: error }, 'Unhandled server error')
+      Sentry.captureException(error)
     }
 
     return reply.status(statusCode).send({
