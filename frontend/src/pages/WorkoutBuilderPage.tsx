@@ -196,7 +196,7 @@ function BlockCard({
   const [noteOpen, setNoteOpen] = useState(!!block.instructions)
 
   const switchMode = useMutation({
-    mutationFn: (newMode: 'reps' | 'duration') =>
+    mutationFn: (_newMode: 'reps' | 'duration') =>
       Promise.all(
         block.items.map(item =>
           apiFetch(`/items/${item.id}`, {
