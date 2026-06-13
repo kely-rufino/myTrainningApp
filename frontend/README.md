@@ -14,6 +14,7 @@ React + Vite SPA, served as static files by the backend in production.
 | Routing | TanStack Router (code-based, not file-based) |
 | Data fetching | TanStack Query |
 | Error tracking | Sentry (`@sentry/react`) |
+| Tests | Vitest + React Testing Library + happy-dom |
 
 ---
 
@@ -24,6 +25,23 @@ cp .env.example .env.local   # then fill in VITE_FRONTEND_SENTRY_DSN (optional)
 npm install
 npm run dev    # http://localhost:5173
 ```
+
+## Tests
+
+```bash
+npm test              # run all tests once
+npm run test:watch    # watch mode
+npm run test:coverage # with coverage report
+```
+
+17 tests across 4 files using Vitest + React Testing Library + happy-dom:
+
+- **`api.test.ts`** — unit tests for `apiFetch`: JSON parsing, `/api` prefix, error messages, 204 handling, Content-Type header
+- **`LoginPage.test.tsx`** — form rendering, API error display, loading state, password show/hide
+- **`SignUpPage.test.tsx`** — password rule indicators, mismatch error, client-side validation blocks API call
+- **`WorkoutsPage.test.tsx`** — loading state, empty state, workout list rendering
+
+API calls are mocked with `vi.mock('../lib/api')` so tests run without a server and never flake on network conditions.
 
 Vite proxies all `/api/*` requests to `http://localhost:3000`, so the backend must be running. No CORS configuration needed in development. Sentry is silently disabled if `VITE_FRONTEND_SENTRY_DSN` is not set.
 
