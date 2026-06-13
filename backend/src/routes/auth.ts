@@ -1,4 +1,8 @@
 import type { FastifyInstance } from 'fastify'
+
+function httpError(statusCode: number, message: string): Error {
+  return Object.assign(new Error(message), { statusCode })
+}
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 import bcrypt from 'bcryptjs'
@@ -50,9 +54,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const { email, name, lastName, password } = request.body
 
       const existing = await prisma.user.findUnique({ where: { email } })
-      if (existing) {
-        return reply.status(409).send({ error: 'Email already in use' } as any)
-      }
+      if (existing) throw httpError(409, 'Email already in use')
 
       const hashed = await bcrypt.hash(password, 10)
       const user = await prisma.user.create({
@@ -82,7 +84,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       const user = await prisma.user.findUnique({ where: { email } })
       if (!user || !(await bcrypt.compare(password, user.password))) {
-        return reply.status(401).send({ error: 'Invalid credentials' } as any)
+        throw httpError(401, 'Invalid credentials')
       }
 
       const token = fastify.jwt.sign({ sub: user.id, email: user.email })
@@ -105,7 +107,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     },
     async (request, reply) => {
       const user = await prisma.user.findUnique({ where: { id: request.user.sub } })
-      if (!user) return reply.status(404).send({ error: 'User not found' } as any)
+      if (!user) throw httpError(404, 'User not found')
       return { id: user.id, email: user.email, name: user.name, lastName: user.lastName, weight: user.weight, height: user.height, dateOfBirth: user.dateOfBirth?.toISOString().slice(0, 10) ?? null, unitPreference: user.unitPreference, weekStartDay: user.weekStartDay, avatar: user.avatar }
     }
   )
@@ -135,7 +137,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       if (email) {
         const existing = await prisma.user.findUnique({ where: { email } })
         if (existing && existing.id !== request.user.sub) {
-          return reply.status(409).send({ error: 'Email already in use' } as any)
+          throw httpError(409, 'Email already in use')
         }
       }
       const user = await prisma.user.update({
@@ -219,7 +221,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         },
       })
       if (!user) {
-        return reply.status(400).send({ error: 'Invalid or expired reset token' } as any)
+        throw httpError(400, 'Invalid or expired reset token')
       }
       const hashed = await bcrypt.hash(password, 10)
       await prisma.user.update({

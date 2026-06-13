@@ -5,6 +5,16 @@ function isPrismaKnownError(err: unknown): err is Error & { code: string } {
   return err instanceof Error && err.constructor.name === 'PrismaClientKnownRequestError' && 'code' in err
 }
 
+function toHttpError(err: unknown): { statusCode: number; message: string } {
+  if (err instanceof Error) {
+    const statusCode = 'statusCode' in err && typeof (err as Record<string, unknown>).statusCode === 'number'
+      ? (err as Error & { statusCode: number }).statusCode
+      : 500
+    return { statusCode, message: err.message }
+  }
+  return { statusCode: 500, message: 'Internal server error' }
+}
+
 export default fp(async (fastify: FastifyInstance) => {
   fastify.setErrorHandler((error, request, reply) => {
     if (isPrismaKnownError(error)) {
@@ -16,14 +26,14 @@ export default fp(async (fastify: FastifyInstance) => {
       }
     }
 
-    const status = error.statusCode ?? 500
+    const { statusCode, message } = toHttpError(error)
 
-    if (status >= 500) {
+    if (statusCode >= 500) {
       request.log.error({ err: error }, 'Unhandled server error')
     }
 
-    return reply.status(status).send({
-      error: status === 500 ? 'Internal server error' : error.message,
+    return reply.status(statusCode).send({
+      error: statusCode === 500 ? 'Internal server error' : message,
     })
   })
 })
