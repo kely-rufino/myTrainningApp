@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
+import path from 'node:path'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import fastifyStatic from '@fastify/static'
 import { ZodTypeProvider, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod'
 import authPlugin from './plugins/auth.js'
 import errorHandler from './plugins/errorHandler.js'
@@ -33,6 +35,16 @@ export async function buildApp() {
   await app.register(workoutRoutes)
   await app.register(exerciseRoutes)
   await app.register(progressRoutes)
+
+  app.get('/health', async () => ({ status: 'ok' }))
+
+  if (process.env.NODE_ENV === 'production') {
+    const frontendDist = path.join(process.cwd(), 'frontend', 'dist')
+    await app.register(fastifyStatic, { root: frontendDist })
+    app.setNotFoundHandler((_, reply) => {
+      reply.sendFile('index.html')
+    })
+  }
 
   return app
 }
