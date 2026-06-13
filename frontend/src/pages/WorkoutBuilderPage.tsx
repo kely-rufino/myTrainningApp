@@ -319,7 +319,7 @@ function BlockCard({
       {block.items.length > 0 && (
         <div className="flex items-center gap-2 mb-1">
           <span className="w-5" />
-          {mode === 'duration' ? (
+          {(pendingMode ?? mode) === 'duration' ? (
             <span className="flex-1 text-center text-xs text-gray-400">Seconds</span>
           ) : (
             <>
@@ -338,7 +338,7 @@ function BlockCard({
           <SetRow
             key={set.id}
             set={set}
-            mode={mode}
+            mode={pendingMode ?? mode}
             onUpdate={data => updateSet.mutate({ id: set.id, data })}
             onDelete={() => deleteSet.mutate(set.id)}
           />
