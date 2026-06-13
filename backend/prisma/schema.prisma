@@ -65,6 +65,7 @@ model WorkoutSessionBlock {
   notes          String?
   order          Int
   supersetGroupId String?
+  mode           String                    @default("reps")
   session      WorkoutSession            @relation(fields: [sessionId], references: [id])
   exercise     Exercise                  @relation(fields: [exerciseId], references: [id])
   items        WorkoutSessionBlockItem[]
