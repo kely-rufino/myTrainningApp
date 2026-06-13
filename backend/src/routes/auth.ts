@@ -4,28 +4,10 @@ import { z } from 'zod'
 import bcrypt from 'bcryptjs'
 import crypto from 'node:crypto'
 import { Resend } from 'resend'
-import { prisma } from '../lib/prisma'
+import { prisma } from '../lib/prisma.js'
+import { passwordSchema } from '../lib/password.js'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
-
-function hasSequentialDigits(pw: string): boolean {
-  for (let i = 0; i < pw.length - 3; i++) {
-    const a = pw.charCodeAt(i)
-    if (a < 48 || a > 57) continue
-    if (
-      pw.charCodeAt(i + 1) === a + 1 &&
-      pw.charCodeAt(i + 2) === a + 2 &&
-      pw.charCodeAt(i + 3) === a + 3
-    ) return true
-  }
-  return false
-}
-
-const passwordSchema = z.string()
-  .min(8, 'Password must be at least 8 characters')
-  .refine(pw => /[A-Z]/.test(pw), 'Password must contain at least 1 capital letter')
-  .refine(pw => /[^a-zA-Z0-9]/.test(pw), 'Password must contain at least 1 special character')
-  .refine(pw => !hasSequentialDigits(pw), 'Password must not contain sequential numbers (e.g. 1234)')
 
 const userSchema = z.object({
   id: z.number(),
@@ -211,7 +193,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           </div>
         `,
       })
-      console.log('Resend result:', JSON.stringify(result))
+      request.log.info({ emailId: result.data?.id, to: email }, 'Password reset email sent')
 
       return { ok: true }
     }

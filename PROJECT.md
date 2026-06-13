@@ -21,6 +21,9 @@ A workout plan and execution web app. Users create workout plans organized by da
 - Prisma 7 (ORM) with SQLite (`prisma/dev.db`)
 - `tsx watch` for dev (ESM-compatible)
 - Dev server: `npm run dev` → `http://localhost:3000`
+- Pino logger (built into Fastify): UUID request IDs, configurable log level via `LOG_LEVEL` env, sensitive fields (`password`, `token`, `cookie`) redacted as `[REDACTED]`
+- Global error handler (`src/plugins/errorHandler.ts`): Prisma P2002 (unique constraint) → 409, Prisma P2025 (not found) → 404, unhandled errors → 500 with full logging
+- Test suite: Vitest 4 — `npm test` runs 28 tests (10 unit, 18 integration)
 
 ---
 
@@ -80,6 +83,34 @@ WorkoutExecution (a user starts a workout on a given day)
 
 ---
 
+## Testing
+
+```bash
+cd backend && npm test              # run all tests once
+cd backend && npm run test:watch    # watch mode
+cd backend && npm run test:coverage # with coverage report
+```
+
+### Structure
+```
+backend/src/test/
+├── globalSetup.ts          # deletes + remigrates test.db before every run
+├── testApp.ts              # shared Fastify app instance used by all integration tests
+├── unit/
+│   └── password.test.ts    # hasSequentialDigits, passwordSchema rules (10 tests)
+└── integration/
+    ├── auth.test.ts        # register / login / /me — 400/401/409 cases (9 tests)
+    └── workouts.test.ts    # workout CRUD — auth guard, 404, 400 cases (9 tests)
+```
+
+### How integration tests work
+Fastify's built-in `inject()` sends fake HTTP requests directly through the full middleware stack (Zod validation → auth → route handler → Prisma → SQLite) without binding to a real port. Tests run against a separate `backend/test.db` that is wiped and remigrated before each `npm test` run.
+
+### SQLite test configuration
+`vitest.config.ts` sets `singleFork: true` so all test files share one process and one Prisma connection. `lib/prisma.ts` sets `PRAGMA busy_timeout=10000` and `PRAGMA journal_mode=DELETE` in test mode to prevent SQLite write-lock failures.
+
+---
+
 ## Key conventions
 
 - **Mobile-first**: all UI built for mobile screen sizes. No responsive desktop breakpoints needed.
@@ -94,7 +125,11 @@ WorkoutExecution (a user starts a workout on a given day)
 
 ## Current status
 
-### Done
+### Done (infrastructure)
+- [x] Pino structured logging (UUID request IDs, log level env, field redaction)
+- [x] Global Prisma error handler (P2002 → 409, P2025 → 404)
+- [x] Vitest test suite — 28 tests (unit + integration via Fastify inject())
+- [x] Extracted `buildApp()` factory and `src/lib/password.ts` for testability
 - [x] Project scaffold (frontend + backend folders)
 - [x] Fastify + Zod running, GET /api/ping endpoint
 - [x] Frontend pings backend via TanStack Query, displays response
