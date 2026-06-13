@@ -188,23 +188,25 @@ function BlockCard({
     onError: () => toast.show('Failed to delete exercise'),
   })
 
-  const [mode, setMode] = useState<'reps' | 'duration'>(
-    block.items.some(i => i.duration !== null) ? 'duration' : 'reps'
-  )
+  const [mode, setMode] = useState<'reps' | 'duration'>(block.mode)
   const [pendingMode, setPendingMode] = useState<'reps' | 'duration' | null>(null)
   const [videoOpen, setVideoOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(!!block.instructions)
 
   const switchMode = useMutation({
-    mutationFn: (_newMode: 'reps' | 'duration') =>
-      Promise.all(
-        block.items.map(item =>
+    mutationFn: (newMode: 'reps' | 'duration') =>
+      Promise.all([
+        apiFetch(`/blocks/${block.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ mode: newMode }),
+        }),
+        ...block.items.map(item =>
           apiFetch(`/items/${item.id}`, {
             method: 'PATCH',
             body: JSON.stringify({ reps: null, weight: null, duration: null }),
           })
-        )
-      ),
+        ),
+      ]),
     onSuccess: (_, newMode) => {
       setMode(newMode)
       setPendingMode(null)

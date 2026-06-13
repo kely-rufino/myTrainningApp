@@ -17,6 +17,7 @@ export type Block = {
   notes: string | null
   order: number
   supersetGroupId: string | null
+  mode: 'reps' | 'duration'
   items: SetItem[]
 }
 

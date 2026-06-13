@@ -170,7 +170,7 @@ function BlockLog({
   sessionStarted: boolean
 }) {
   const qc = useQueryClient()
-  const isDuration = block.items.some(i => i.duration !== null)
+  const isDuration = block.mode === 'duration'
 
   const toast = useToast()
 
