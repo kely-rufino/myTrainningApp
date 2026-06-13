@@ -191,8 +191,33 @@ function BlockCard({
   const [mode, setMode] = useState<'reps' | 'duration'>(
     block.items.some(i => i.duration !== null) ? 'duration' : 'reps'
   )
+  const [pendingMode, setPendingMode] = useState<'reps' | 'duration' | null>(null)
   const [videoOpen, setVideoOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(!!block.instructions)
+
+  const switchMode = useMutation({
+    mutationFn: (newMode: 'reps' | 'duration') =>
+      Promise.all(
+        block.items.map(item =>
+          apiFetch(`/items/${item.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ reps: null, weight: null, duration: null }),
+          })
+        )
+      ),
+    onSuccess: (_, newMode) => {
+      setMode(newMode)
+      setPendingMode(null)
+      inv()
+    },
+    onError: () => toast.show('Failed to switch mode'),
+  })
+
+  function handleModeClick(m: 'reps' | 'duration') {
+    if (m === mode) { setPendingMode(null); return }
+    if (block.items.length === 0) { setMode(m); return }
+    setPendingMode(m)
+  }
 
   function addNewSet() {
     if (mode === 'duration') addSet.mutate({ duration: null })
@@ -258,15 +283,35 @@ function BlockCard({
         {(['reps', 'duration'] as const).map(m => (
           <button
             key={m}
-            onClick={() => setMode(m)}
-            className={`px-3 py-1 rounded-full text-xs font-medium ${
-              mode === m ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
+            onClick={() => handleModeClick(m)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              (pendingMode ?? mode) === m ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
             }`}
           >
             {m === 'reps' ? 'Reps & Weight' : 'Duration'}
           </button>
         ))}
       </div>
+
+      {/* Save / Cancel when a mode switch is pending */}
+      {pendingMode !== null && (
+        <div className="flex gap-2 mb-2">
+          <button
+            onClick={() => switchMode.mutate(pendingMode)}
+            disabled={switchMode.isPending}
+            className="flex-1 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-semibold active:opacity-80 disabled:opacity-40"
+          >
+            {switchMode.isPending ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            onClick={() => setPendingMode(null)}
+            disabled={switchMode.isPending}
+            className="px-4 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs font-medium active:opacity-70 disabled:opacity-40"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Column headers */}
       {block.items.length > 0 && (
