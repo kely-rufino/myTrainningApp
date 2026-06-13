@@ -318,8 +318,8 @@ function ProgressTab() {
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                       fontSize: '12px',
                     }}
-                    formatter={(val: number) =>
-                      metric === 'maxWeight' ? [`${val} kg`, 'Max weight'] : [`${val} kg`, 'Volume']
+                    formatter={(val) =>
+                      metric === 'maxWeight' ? [`${val ?? 0} kg`, 'Max weight'] : [`${val ?? 0} kg`, 'Volume']
                     }
                   />
                   <Line

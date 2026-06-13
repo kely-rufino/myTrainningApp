@@ -1,6 +1,6 @@
 import { useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { meQueryOptions } from '../lib/queries'
 import { apiFetch } from '../lib/api'
 import type { User } from '../lib/types'
