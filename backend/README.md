@@ -192,3 +192,17 @@ The app deploys automatically on every push to `main`.
 **Start**: `railway.json` overrides the start command to run `prisma migrate deploy` before starting the server. This keeps the production database schema in sync with the code on every deploy.
 
 **Healthcheck**: Railway probes `/health` (returns `{ status: "ok" }`) to confirm the server is up before routing traffic.
+
+### Required Railway variables
+
+Set these in the service's **Variables** tab before deploying:
+
+| Variable | Notes |
+|---|---|
+| `JWT_SECRET` | Long random string — generate with `openssl rand -hex 32` |
+| `SENTRY_DSN` | Backend DSN from your Sentry project settings |
+| `VITE_FRONTEND_SENTRY_DSN` | Browser DSN from your Sentry project settings — **build-time only**, see note below |
+
+`DATABASE_URL`, `PORT`, and `NODE_ENV` are provided automatically by Railway.
+
+> **`VITE_FRONTEND_SENTRY_DSN` is baked into the frontend bundle at build time.** The Dockerfile declares it as a Docker `ARG`, and Railway automatically passes matching service variables as build args. This means: (1) the value must be present in Railway before the build starts, and (2) changing the variable requires a new deploy to take effect.

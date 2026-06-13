@@ -35,7 +35,9 @@ Vite proxies all `/api/*` requests to `http://localhost:3000`, so the backend mu
 |---|---|
 | `VITE_FRONTEND_SENTRY_DSN` | Sentry DSN for browser error tracking. Optional — Sentry is disabled when absent. |
 
-Copy `.env.example` to `.env.local` for local dev. In Railway, set `VITE_FRONTEND_SENTRY_DSN` as a service environment variable — it is distinct from the backend's `SENTRY_DSN` and is injected into the Docker build at image build time (declared via `ARG` in the Dockerfile).
+Copy `.env.example` to `.env.local` for local dev. In Railway, set `VITE_FRONTEND_SENTRY_DSN` as a service environment variable — it is distinct from the backend's `SENTRY_DSN`.
+
+> **Build-time variable:** Vite bakes `VITE_*` variables into the static bundle at build time, not runtime. The Dockerfile declares `ARG VITE_FRONTEND_SENTRY_DSN` so Railway automatically passes the service variable through during `docker build`. The value must be present in Railway **before the build starts** — changing it requires a new deploy to take effect.
 
 ---
 

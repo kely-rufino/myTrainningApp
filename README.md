@@ -36,6 +36,22 @@ The frontend Vite config proxies all `/api/*` requests to the backend, so you ne
 
 ---
 
+## Deploying to Railway
+
+The app is configured to deploy automatically on every push to `main`. Before the first deploy (or when setting up a new environment), add these variables in your Railway service's **Variables** tab:
+
+| Variable | Where it's used | Notes |
+|---|---|---|
+| `JWT_SECRET` | Backend (runtime) | Any long random string |
+| `SENTRY_DSN` | Backend (runtime) | From your Sentry project's backend DSN |
+| `VITE_FRONTEND_SENTRY_DSN` | Frontend (build time) | From your Sentry project's browser DSN — injected into the bundle during `docker build`, so Railway must have this set before the build runs |
+
+`DATABASE_URL`, `PORT`, and `NODE_ENV` are set automatically by Railway.
+
+> **Important:** `VITE_FRONTEND_SENTRY_DSN` is a build-time variable. Railway passes it to Docker as a build arg. If you add or change it, you need to trigger a new deploy for it to take effect.
+
+---
+
 ## Detailed docs
 
 - **[backend/README.md](backend/README.md)** — environment variables, Sentry setup, Railway deployment, test suite, database migrations
