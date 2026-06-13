@@ -1,6 +1,9 @@
 {
   "name": "my-training-app",
   "private": true,
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "build": "cd frontend && npm ci && npm run build && cd ../backend && npm ci && npx prisma generate && npm run build",
     "start": "node backend/dist/index.js"
