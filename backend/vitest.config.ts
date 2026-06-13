@@ -10,7 +10,8 @@ export default defineConfig({
       RESEND_API_KEY: 're_test_placeholder',
     },
     globalSetup: './src/test/globalSetup.ts',
-    singleFork: true, // all test files run in one process — avoids SQLite inter-process lock conflicts
+    singleFork: true,
+    fileParallelism: false, // run test files one at a time — prevents concurrent beforeAll hooks from racing on SQLite writes
     coverage: {
       provider: 'v8',
       reporter: ['text'],

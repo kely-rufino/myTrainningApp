@@ -23,7 +23,7 @@ A workout plan and execution web app. Users create workout plans organized by da
 - Dev server: `npm run dev` → `http://localhost:3000`
 - Pino logger (built into Fastify): UUID request IDs, configurable log level via `LOG_LEVEL` env, sensitive fields (`password`, `token`, `cookie`) redacted as `[REDACTED]`
 - Global error handler (`src/plugins/errorHandler.ts`): Prisma P2002 (unique constraint) → 409, Prisma P2025 (not found) → 404, unhandled errors → 500 with full logging
-- Test suite: Vitest 4 — `npm test` runs 28 tests (10 unit, 18 integration)
+- Test suite: Vitest 4 — `npm test` runs 83 tests (5 unit, 78 integration)
 
 ---
 
@@ -94,13 +94,16 @@ cd backend && npm run test:coverage # with coverage report
 ### Structure
 ```
 backend/src/test/
-├── globalSetup.ts          # deletes + remigrates test.db before every run
-├── testApp.ts              # shared Fastify app instance used by all integration tests
+├── globalSetup.ts              # deletes + remigrates test.db before every run
+├── testApp.ts                  # shared Fastify app instance (globalThis singleton)
 ├── unit/
-│   └── password.test.ts    # hasSequentialDigits, passwordSchema rules (10 tests)
+│   └── password.test.ts        # hasSequentialDigits, passwordSchema rules (5 tests)
 └── integration/
-    ├── auth.test.ts        # register / login / /me — 400/401/409 cases (9 tests)
-    └── workouts.test.ts    # workout CRUD — auth guard, 404, 400 cases (9 tests)
+    ├── auth.test.ts            # register / login / /me — 400/401/409 cases (5 tests)
+    ├── exercises.test.ts       # exercise CRUD + conflict + validation (11 tests)
+    ├── progress.test.ts        # history + progress endpoints (6 tests)
+    ├── workouts.test.ts        # workout CRUD (12 tests)
+    └── workouts-builder.test.ts  # sessions, blocks, items, executions, calendar (34 tests)
 ```
 
 ### How integration tests work

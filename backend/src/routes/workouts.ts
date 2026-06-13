@@ -510,6 +510,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
         where: { id: req.params.id, userId: req.user.sub },
       })
       if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
+      await prisma.workoutSessionBlockExecution.deleteMany({ where: { workoutExecutionId: ex.id } })
       await prisma.workoutExecution.delete({ where: { id: ex.id } })
       return reply.status(204).send()
     }

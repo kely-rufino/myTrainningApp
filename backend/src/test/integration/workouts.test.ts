@@ -99,6 +99,37 @@ describe('GET /api/workouts/:id', () => {
   })
 })
 
+describe('PATCH /api/workouts/:id', () => {
+  it('updates the workout name', async () => {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/workouts',
+      headers: { cookie: authCookie },
+      body: { name: 'Old Name' },
+    })
+    const { id } = created.json()
+
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/workouts/${id}`,
+      headers: { cookie: authCookie },
+      body: { name: 'New Name' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().name).toBe('New Name')
+  })
+
+  it('returns 404 for a non-existent workout', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/workouts/999999',
+      headers: { cookie: authCookie },
+      body: { name: 'New Name' },
+    })
+    expect(res.statusCode).toBe(404)
+  })
+})
+
 describe('DELETE /api/workouts/:id', () => {
   it('deletes the workout and returns 204', async () => {
     const created = await app.inject({
