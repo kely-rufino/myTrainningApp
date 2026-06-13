@@ -20,11 +20,22 @@ React + Vite SPA, served as static files by the backend in production.
 ## Local development
 
 ```bash
+cp .env.example .env.local   # then fill in VITE_FRONTEND_SENTRY_DSN (optional)
 npm install
 npm run dev    # http://localhost:5173
 ```
 
-Vite proxies all `/api/*` requests to `http://localhost:3000`, so the backend must be running. No CORS configuration needed in development.
+Vite proxies all `/api/*` requests to `http://localhost:3000`, so the backend must be running. No CORS configuration needed in development. Sentry is silently disabled if `VITE_FRONTEND_SENTRY_DSN` is not set.
+
+---
+
+## Environment variables
+
+| Variable | Description |
+|---|---|
+| `VITE_FRONTEND_SENTRY_DSN` | Sentry DSN for browser error tracking. Optional — Sentry is disabled when absent. |
+
+Copy `.env.example` to `.env.local` for local dev. In Railway, set `VITE_FRONTEND_SENTRY_DSN` as a service environment variable — it is distinct from the backend's `SENTRY_DSN` and is injected into the Docker build at image build time (declared via `ARG` in the Dockerfile).
 
 ---
 
@@ -34,7 +45,8 @@ Sentry is initialised in `src/main.tsx` before the React tree mounts:
 
 ```ts
 Sentry.init({
-  dsn: "...",
+  dsn: import.meta.env.VITE_FRONTEND_SENTRY_DSN,
+  enabled: !!import.meta.env.VITE_FRONTEND_SENTRY_DSN,
   integrations: [
     Sentry.browserTracingIntegration(),  // traces page navigations and API calls
     Sentry.replayIntegration(),          // session replay on errors
@@ -51,8 +63,6 @@ Sentry.init({
 **`replayIntegration`** records session replays. 10% of sessions are sampled normally; 100% of sessions that contain an error are captured. Replays are stored in Sentry and can be viewed alongside the error event.
 
 **`tracePropagationTargets`** limits distributed trace headers to `localhost` and the production Railway URL — this prevents Sentry from injecting trace headers into third-party requests.
-
-The DSN is committed directly in the source because it is a public-facing identifier (not a secret). Sentry uses origin-based rate-limiting on the receiving end to prevent abuse.
 
 ---
 
