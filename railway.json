@@ -1,7 +1,7 @@
 {
   "$schema": "https://railway.com/railway.schema.json",
   "deploy": {
-    "startCommand": "cd /app/backend && npx prisma migrate deploy && cd /app && node backend/dist/index.js",
+    "startCommand": "sh -c 'cd /app/backend && npx prisma migrate deploy && cd /app && node backend/dist/index.js'",
     "healthcheckPath": "/health"
   }
 }
