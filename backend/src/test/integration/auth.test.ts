@@ -79,6 +79,29 @@ describe('POST /api/auth/login', () => {
   })
 })
 
+describe('POST /api/auth/forgot-password', () => {
+  it('returns 200 for an unknown email without revealing whether it exists', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/forgot-password',
+      body: { email: 'nobody@example.com' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().ok).toBe(true)
+  })
+})
+
+describe('POST /api/auth/reset-password', () => {
+  it('returns 400 for an invalid or expired token', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/reset-password',
+      body: { token: 'invalid-token-that-does-not-exist', password: 'NewSecure@57!' },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+})
+
 describe('GET /api/auth/me', () => {
   let authCookie: string
 
