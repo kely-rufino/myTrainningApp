@@ -115,6 +115,34 @@ describe('PATCH /api/exercises/:id', () => {
     expect(res.json().name).toBe('Overhead Press (barbell)')
   })
 
+  it('updates description and videoUrl', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/exercises/${exerciseId}`,
+      headers: { cookie: authCookie },
+      body: { description: 'A classic push exercise', videoUrl: 'https://youtube.com/watch?v=abc' },
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.json().description).toBe('A classic push exercise')
+    expect(res.json().videoUrl).toBe('https://youtube.com/watch?v=abc')
+  })
+
+  it('returns 200 when the name is unchanged (no uniqueness check needed)', async () => {
+    const current = await app.inject({
+      method: 'GET',
+      url: '/api/exercises',
+      headers: { cookie: authCookie },
+    })
+    const name = current.json().find((e: { id: number }) => e.id === exerciseId)?.name
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/exercises/${exerciseId}`,
+      headers: { cookie: authCookie },
+      body: { name },
+    })
+    expect(res.statusCode).toBe(200)
+  })
+
   it('returns 404 for a non-existent exercise', async () => {
     const res = await app.inject({
       method: 'PATCH',
@@ -161,6 +189,42 @@ describe('DELETE /api/exercises/:id', () => {
       headers: { cookie: authCookie },
     })
     expect(res.statusCode).toBe(404)
+  })
+
+  it('returns 409 when the exercise is used in a workout', async () => {
+    const ex = await app.inject({
+      method: 'POST',
+      url: '/api/exercises',
+      headers: { cookie: authCookie },
+      body: { name: 'In-Use Exercise' },
+    })
+    const exId = ex.json().id
+
+    const w = await app.inject({
+      method: 'POST',
+      url: '/api/workouts',
+      headers: { cookie: authCookie },
+      body: { name: 'Temp Workout' },
+    })
+    const s = await app.inject({
+      method: 'POST',
+      url: `/api/workouts/${w.json().id}/sessions`,
+      headers: { cookie: authCookie },
+      body: {},
+    })
+    await app.inject({
+      method: 'POST',
+      url: `/api/sessions/${s.json().id}/blocks`,
+      headers: { cookie: authCookie },
+      body: { exerciseId: exId },
+    })
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/exercises/${exId}`,
+      headers: { cookie: authCookie },
+    })
+    expect(res.statusCode).toBe(409)
   })
 
   it('returns 401 without auth', async () => {
