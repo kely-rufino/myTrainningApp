@@ -81,6 +81,24 @@ WorkoutExecution (a user starts a workout on a given day)
 **WorkoutSessionBlockExecution** — actual logged output per set during execution
 - id, workoutExecutionId, workoutSessionBlockItemId, reps (optional), weight (optional), duration (optional), createdAt, updatedAt
 
+**ApiToken** — a Personal Access Token used to authenticate MCP clients as a given user
+- id, userId, name, tokenHash (unique, sha256), tokenPrefix (for display), lastUsedAt (optional), expiresAt (optional), createdAt
+
+---
+
+## MCP server
+
+The backend exposes a Model Context Protocol server so a user's own AI agent (Claude Code, Claude Desktop, etc.) can manage their workouts on their behalf — no LLM calls happen inside this app, it's purely tool plumbing.
+
+- **Endpoint**: `POST /mcp` — Streamable HTTP transport (`@modelcontextprotocol/sdk`), run **stateless**: a fresh `McpServer` + transport is built per request, closed over the userId resolved from that request's token. `GET`/`DELETE /mcp` return 405 (no session/SSE stream in stateless mode).
+- **Auth**: `Authorization: Bearer <token>` — a Personal Access Token generated from the Profile page ("Connected agents" section, backed by `ApiToken`/`POST /api/tokens`). Not the browser's JWT cookie. See `backend/src/plugins/mcpAuth.ts` and `backend/src/lib/apiTokens.ts`.
+- **Tool handlers call the same service layer as the REST routes** (`backend/src/services/{workout,exercise,progress}Service.ts`) — one implementation of ownership checks and cascade deletes shared by both. Tools live in `backend/src/mcp/tools/`.
+- **Tools**: `list_workouts`, `get_workout`, `create_workout`, `update_workout`, `delete_workout`, `create_session`, `update_session`, `delete_session`, `create_block`, `add_superset_block`, `update_block`, `delete_block`, `create_item`, `update_item`, `delete_item`, `get_calendar`, `create_execution`, `start_execution`, `finish_execution`, `delete_execution`, `log_set_result`, `list_exercises`, `create_exercise`, `update_exercise`, `delete_exercise`, `get_history`, `list_tracked_exercises`, `get_exercise_progress`.
+- **Connect a client**, e.g.:
+  ```bash
+  claude mcp add --transport http mytraining http://localhost:3000/mcp --header "Authorization: Bearer <token>"
+  ```
+
 ---
 
 ## Testing
@@ -97,13 +115,16 @@ backend/src/test/
 ├── globalSetup.ts              # deletes + remigrates test.db before every run
 ├── testApp.ts                  # shared Fastify app instance (globalThis singleton)
 ├── unit/
-│   └── password.test.ts        # hasSequentialDigits, passwordSchema rules (5 tests)
+│   ├── password.test.ts        # hasSequentialDigits, passwordSchema rules (5 tests)
+│   └── apiTokens.test.ts       # token generation/hashing (5 tests)
 └── integration/
     ├── auth.test.ts            # register / login / /me — 400/401/409 cases (5 tests)
     ├── exercises.test.ts       # exercise CRUD + conflict + validation (11 tests)
     ├── progress.test.ts        # history + progress endpoints (6 tests)
     ├── workouts.test.ts        # workout CRUD (12 tests)
-    └── workouts-builder.test.ts  # sessions, blocks, items, executions, calendar (34 tests)
+    ├── workouts-builder.test.ts  # sessions, blocks, items, executions, calendar (34 tests)
+    ├── apiTokens.test.ts       # /api/tokens CRUD + ownership (7 tests)
+    └── mcp.test.ts             # /mcp auth, tools/list, tools/call, cross-user isolation (7 tests)
 ```
 
 ### How integration tests work
@@ -166,6 +187,10 @@ Fastify's built-in `inject()` sends fake HTTP requests directly through the full
 - [x] Log actual reps/weight/duration per set (blur-to-save)
 - [x] Logged sets turn green with a ✓ indicator
 - [x] Exercises auto-expand when session is in progress
+
+#### MCP server
+- [x] Personal Access Tokens — generate/list/revoke from Profile page, `ApiToken` model, sha256-hashed
+- [x] `POST /mcp` — stateless Streamable HTTP MCP server, bearer-token auth, full CRUD tool parity with the REST API, per-user scoped
 
 #### Progress & History
 - [x] History tab — last 30 completed sessions with date, workout, session, duration

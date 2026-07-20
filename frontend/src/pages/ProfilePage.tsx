@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { meQueryOptions } from '../lib/queries'
 import { apiFetch } from '../lib/api'
+import { ApiTokensSection } from '../components/ApiTokensSection'
 import type { User } from '../lib/types'
 
 // ── Field row ─────────────────────────────────────────────────────────────────
@@ -248,6 +249,9 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Connected agents (MCP) */}
+        <ApiTokensSection />
 
         {/* Danger zone */}
         <div className="mt-2">
