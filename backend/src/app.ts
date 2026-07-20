@@ -10,6 +10,8 @@ import { authRoutes } from './routes/auth.js'
 import { workoutRoutes } from './routes/workouts.js'
 import { exerciseRoutes } from './routes/exercises.js'
 import { progressRoutes } from './routes/progress.js'
+import { apiTokenRoutes } from './routes/apiTokens.js'
+import { mcpRoutes } from './routes/mcp.js'
 
 import './instrument.js'
 import * as Sentry from '@sentry/node'
@@ -39,6 +41,8 @@ export async function buildApp() {
   await app.register(workoutRoutes)
   await app.register(exerciseRoutes)
   await app.register(progressRoutes)
+  await app.register(apiTokenRoutes)
+  await app.register(mcpRoutes)
 
   app.get('/health', async () => ({ status: 'ok' }))
 

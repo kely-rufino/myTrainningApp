@@ -11,7 +11,8 @@ Fastify 5 API with Prisma + SQLite, deployed on Railway.
 | HTTP framework | Fastify 5 |
 | Validation | Zod 4 via `fastify-type-provider-zod` |
 | ORM | Prisma 7 with `@prisma/adapter-libsql` (SQLite) |
-| Auth | JWT via `@fastify/jwt` + httpOnly cookie (`@fastify/cookie`) |
+| Auth | JWT via `@fastify/jwt` + httpOnly cookie (`@fastify/cookie`) for the web app; Bearer Personal Access Tokens for MCP clients |
+| Agent access | [MCP](https://modelcontextprotocol.io) server (`@modelcontextprotocol/sdk`) at `POST /mcp`, Streamable HTTP, stateless |
 | Logging | Pino (built into Fastify) |
 | Error tracking | Sentry (`@sentry/node`) |
 | Build | tsup (bundles ESM output for production) |
@@ -98,6 +99,19 @@ Pino structured logging is enabled in all non-test environments:
 | Everything else | 500 Internal Server Error |
 
 500s are logged with full stack trace via Pino and captured in Sentry.
+
+---
+
+## MCP server
+
+`POST /mcp` lets an AI agent manage a user's workouts via the [Model Context Protocol](https://modelcontextprotocol.io) — no LLM calls happen in this backend, it's a protocol adapter over the same service layer the REST routes use.
+
+- **Auth**: `Authorization: Bearer <token>` — a Personal Access Token, not the JWT cookie. Tokens are managed via `/api/tokens` (cookie-authenticated) and by users from the app's Profile page. See `src/lib/apiTokens.ts` (sha256-hashed, `ApiToken` model) and `src/plugins/mcpAuth.ts`.
+- **Transport**: Streamable HTTP, run stateless — a fresh `McpServer` is built per request, closed over the userId resolved from the token (`src/mcp/createServer.ts`). `GET`/`DELETE /mcp` return 405; there's no session to resume or SSE stream to close in stateless mode.
+- **Tools**: one per REST capability (workouts/sessions/blocks/sets/executions, exercises, progress) — see `src/mcp/tools/*.ts`, or the full list in [`../PROJECT.md`](../PROJECT.md#mcp-server).
+- **Scoping**: tool handlers call the same `src/services/*.ts` functions the REST routes call, so ownership checks and cascade deletes can't drift between the two surfaces.
+
+No new environment variables are required — it reuses `DATABASE_URL` for the `ApiToken` table.
 
 ---
 

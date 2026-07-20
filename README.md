@@ -36,6 +36,28 @@ The frontend Vite config proxies all `/api/*` requests to the backend, so you ne
 
 ---
 
+## Connecting an AI agent (MCP)
+
+The backend exposes a [Model Context Protocol](https://modelcontextprotocol.io) server so a user's own AI agent (Claude Code, Claude Desktop, or any MCP-compatible client) can manage their workouts on their behalf — no LLM calls happen inside this app, it's pure tool plumbing over the existing REST logic. Every tool call is scoped to the token's owner; one user's agent can never see or touch another user's data.
+
+**1. Generate a token** — log in to the app → **Profile** → **Connected agents** → **"+ Generate new token"**. Copy it immediately; it's only shown once.
+
+**2. Point an MCP client at it** — endpoint is `POST /mcp`, auth is `Authorization: Bearer <token>`. For Claude Code:
+
+```bash
+claude mcp add --transport http mytraining https://mytrainning.up.railway.app/mcp --header "Authorization: Bearer <token>"
+# or, for a local dev backend:
+claude mcp add --transport http mytraining http://localhost:3000/mcp --header "Authorization: Bearer <token>"
+```
+
+Any other MCP client that supports Streamable HTTP + custom headers works the same way.
+
+**3. Use it** — the agent gets tools like `list_workouts`, `create_workout`, `create_session`, `create_block`, `log_set_result`, `get_calendar`, `get_history`, etc. — full CRUD parity with the app's own UI. Revoke a token from the same Profile screen at any time to cut off access immediately.
+
+Full tool list, auth internals, and the token data model are documented in [`PROJECT.md`](PROJECT.md#mcp-server).
+
+---
+
 ## Deploying to Railway
 
 The app is configured to deploy automatically on every push to `main`. Before the first deploy (or when setting up a new environment), add these variables in your Railway service's **Variables** tab:

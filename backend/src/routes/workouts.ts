@@ -1,44 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { ZodTypeProvider } from 'fastify-type-provider-zod'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma.js'
-import { randomUUID } from 'crypto'
-
-const blockInclude = {
-  exercise: { select: { id: true, name: true, videoUrl: true } },
-  items: { orderBy: { order: 'asc' as const } },
-}
-
-const sessionInclude = {
-  blocks: {
-    orderBy: { order: 'asc' as const },
-    include: blockInclude,
-  },
-}
-
-async function ownedWorkout(userId: number, workoutId: number) {
-  return prisma.workout.findFirst({ where: { id: workoutId, userId } })
-}
-
-async function ownedSession(userId: number, sessionId: number) {
-  return prisma.workoutSession.findFirst({
-    where: { id: sessionId, workout: { userId } },
-    include: { workout: { select: { userId: true } }, _count: { select: { blocks: true } } },
-  })
-}
-
-async function ownedBlock(userId: number, blockId: number) {
-  return prisma.workoutSessionBlock.findFirst({
-    where: { id: blockId, session: { workout: { userId } } },
-    include: { _count: { select: { items: true } } },
-  })
-}
-
-async function ownedItem(userId: number, itemId: number) {
-  return prisma.workoutSessionBlockItem.findFirst({
-    where: { id: itemId, block: { session: { workout: { userId } } } },
-  })
-}
+import * as workoutService from '../services/workoutService.js'
 
 export async function workoutRoutes(fastify: FastifyInstance) {
   const app = fastify.withTypeProvider<ZodTypeProvider>()
@@ -46,21 +9,13 @@ export async function workoutRoutes(fastify: FastifyInstance) {
 
   // ── Workouts ──────────────────────────────────────────────────────────────
 
-  app.get('/api/workouts', async (req) =>
-    prisma.workout.findMany({
-      where: { userId: req.user.sub },
-      include: { _count: { select: { sessions: true } } },
-      orderBy: { id: 'desc' },
-    })
-  )
+  app.get('/api/workouts', async (req) => workoutService.listWorkouts(req.user.sub))
 
   app.post(
     '/api/workouts',
     { schema: { body: z.object({ name: z.string().min(1), instructions: z.string().optional() }) } },
     async (req, reply) => {
-      const w = await prisma.workout.create({
-        data: { name: req.body.name, instructions: req.body.instructions, userId: req.user.sub },
-      })
+      const w = await workoutService.createWorkout(req.user.sub, req.body)
       return reply.status(201).send(w)
     }
   )
@@ -68,14 +23,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
   app.get(
     '/api/workouts/:id',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
-    async (req, reply) => {
-      const w = await prisma.workout.findFirst({
-        where: { id: req.params.id, userId: req.user.sub },
-        include: { sessions: { orderBy: { order: 'asc' }, include: sessionInclude } },
-      })
-      if (!w) return reply.status(404).send({ error: 'Not found' } as any)
-      return w
-    }
+    async (req) => workoutService.getWorkout(req.user.sub, req.params.id)
   )
 
   app.patch(
@@ -86,48 +34,14 @@ export async function workoutRoutes(fastify: FastifyInstance) {
         body: z.object({ name: z.string().min(1).optional(), instructions: z.string().nullable().optional() }),
       },
     },
-    async (req, reply) => {
-      const w = await ownedWorkout(req.user.sub, req.params.id)
-      if (!w) return reply.status(404).send({ error: 'Not found' } as any)
-      return prisma.workout.update({
-        where: { id: w.id },
-        data: {
-          ...(req.body.name !== undefined && { name: req.body.name }),
-          ...(req.body.instructions !== undefined && { instructions: req.body.instructions }),
-        },
-      })
-    }
+    async (req) => workoutService.updateWorkout(req.user.sub, req.params.id, req.body)
   )
 
   app.delete(
     '/api/workouts/:id',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
     async (req, reply) => {
-      const w = await ownedWorkout(req.user.sub, req.params.id)
-      if (!w) return reply.status(404).send({ error: 'Not found' } as any)
-
-      // Delete in order (no cascade in schema):
-      // block executions → items → blocks → workout executions → sessions → workout
-      const blocks = await prisma.workoutSessionBlock.findMany({
-        where: { session: { workoutId: w.id } },
-        include: { items: { select: { id: true } } },
-      })
-      const itemIds = blocks.flatMap(b => b.items.map(i => i.id))
-      if (itemIds.length > 0) {
-        await prisma.workoutSessionBlockExecution.deleteMany({
-          where: { workoutSessionBlockItemId: { in: itemIds } },
-        })
-        await prisma.workoutSessionBlockItem.deleteMany({ where: { id: { in: itemIds } } })
-      }
-      if (blocks.length > 0) {
-        await prisma.workoutSessionBlock.deleteMany({
-          where: { session: { workoutId: w.id } },
-        })
-      }
-      await prisma.workoutExecution.deleteMany({ where: { workoutId: w.id } })
-      await prisma.workoutSession.deleteMany({ where: { workoutId: w.id } })
-      await prisma.workout.delete({ where: { id: w.id } })
-
+      await workoutService.deleteWorkout(req.user.sub, req.params.id)
       return reply.status(204).send()
     }
   )
@@ -138,20 +52,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
     '/api/workouts/:id/sessions',
     { schema: { params: z.object({ id: z.coerce.number() }), body: z.object({ name: z.string().optional() }) } },
     async (req, reply) => {
-      const w = await prisma.workout.findFirst({
-        where: { id: req.params.id, userId: req.user.sub },
-        include: { _count: { select: { sessions: true } } },
-      })
-      if (!w) return reply.status(404).send({ error: 'Not found' } as any)
-      const count = w._count.sessions
-      const s = await prisma.workoutSession.create({
-        data: {
-          workoutId: w.id,
-          name: req.body.name ?? `Day ${count + 1}`,
-          order: count + 1,
-        },
-        include: sessionInclude,
-      })
+      const s = await workoutService.createSession(req.user.sub, req.params.id, req.body.name)
       return reply.status(201).send(s)
     }
   )
@@ -159,36 +60,14 @@ export async function workoutRoutes(fastify: FastifyInstance) {
   app.patch(
     '/api/sessions/:id',
     { schema: { params: z.object({ id: z.coerce.number() }), body: z.object({ name: z.string().min(1) }) } },
-    async (req, reply) => {
-      const s = await ownedSession(req.user.sub, req.params.id)
-      if (!s) return reply.status(404).send({ error: 'Not found' } as any)
-      return prisma.workoutSession.update({ where: { id: s.id }, data: { name: req.body.name } })
-    }
+    async (req) => workoutService.updateSession(req.user.sub, req.params.id, req.body.name)
   )
 
   app.delete(
     '/api/sessions/:id',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
     async (req, reply) => {
-      const s = await ownedSession(req.user.sub, req.params.id)
-      if (!s) return reply.status(404).send({ error: 'Not found' } as any)
-
-      // Delete in order: executions → items → blocks → session
-      const blocks = await prisma.workoutSessionBlock.findMany({
-        where: { sessionId: s.id },
-        include: { items: { select: { id: true } } },
-      })
-      const itemIds = blocks.flatMap(b => b.items.map(i => i.id))
-      if (itemIds.length > 0) {
-        await prisma.workoutSessionBlockExecution.deleteMany({
-          where: { workoutSessionBlockItemId: { in: itemIds } },
-        })
-        await prisma.workoutSessionBlockItem.deleteMany({ where: { id: { in: itemIds } } })
-      }
-      if (blocks.length > 0) {
-        await prisma.workoutSessionBlock.deleteMany({ where: { sessionId: s.id } })
-      }
-      await prisma.workoutSession.delete({ where: { id: s.id } })
+      await workoutService.deleteSession(req.user.sub, req.params.id)
       return reply.status(204).send()
     }
   )
@@ -209,19 +88,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const s = await ownedSession(req.user.sub, req.params.id)
-      if (!s) return reply.status(404).send({ error: 'Not found' } as any)
-      const block = await prisma.workoutSessionBlock.create({
-        data: {
-          sessionId: s.id,
-          exerciseId: req.body.exerciseId,
-          instructions: req.body.instructions,
-          supersetGroupId: req.body.supersetGroupId,
-          mode: req.body.mode ?? 'reps',
-          order: s._count.blocks + 1,
-        },
-        include: blockInclude,
-      })
+      const block = await workoutService.createBlock(req.user.sub, req.params.id, req.body)
       return reply.status(201).send(block)
     }
   )
@@ -236,32 +103,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const existing = await prisma.workoutSessionBlock.findFirst({
-        where: { id: req.params.id, session: { workout: { userId: req.user.sub } } },
-        include: { session: { include: { _count: { select: { blocks: true } } } } },
-      })
-      if (!existing) return reply.status(404).send({ error: 'Not found' } as any)
-
-      // Assign a groupId if this block doesn't have one yet
-      const groupId = existing.supersetGroupId ?? randomUUID()
-
-      // Ensure the original block has the groupId
-      if (!existing.supersetGroupId) {
-        await prisma.workoutSessionBlock.update({
-          where: { id: existing.id },
-          data: { supersetGroupId: groupId },
-        })
-      }
-
-      const block = await prisma.workoutSessionBlock.create({
-        data: {
-          sessionId: existing.sessionId,
-          exerciseId: req.body.exerciseId,
-          supersetGroupId: groupId,
-          order: existing.session._count.blocks + 1,
-        },
-        include: blockInclude,
-      })
+      const block = await workoutService.addSupersetBlock(req.user.sub, req.params.id, req.body.exerciseId)
       return reply.status(201).send(block)
     }
   )
@@ -279,58 +121,14 @@ export async function workoutRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-    async (req, reply) => {
-      const b = await ownedBlock(req.user.sub, req.params.id)
-      if (!b) return reply.status(404).send({ error: 'Not found' } as any)
-      return prisma.workoutSessionBlock.update({
-        where: { id: b.id },
-        data: {
-          ...(req.body.exerciseId !== undefined && { exerciseId: req.body.exerciseId }),
-          ...(req.body.instructions !== undefined && { instructions: req.body.instructions }),
-          ...(req.body.notes !== undefined && { notes: req.body.notes }),
-          ...(req.body.mode !== undefined && { mode: req.body.mode }),
-        },
-        include: blockInclude,
-      })
-    }
+    async (req) => workoutService.updateBlock(req.user.sub, req.params.id, req.body)
   )
 
   app.delete(
     '/api/blocks/:id',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
     async (req, reply) => {
-      const b = await ownedBlock(req.user.sub, req.params.id)
-      if (!b) return reply.status(404).send({ error: 'Not found' } as any)
-      const groupId = b.supersetGroupId
-
-      // Delete in order: executions → items → block (no cascade in schema)
-      const items = await prisma.workoutSessionBlockItem.findMany({
-        where: { blockId: b.id },
-        select: { id: true },
-      })
-      if (items.length > 0) {
-        const itemIds = items.map(i => i.id)
-        await prisma.workoutSessionBlockExecution.deleteMany({
-          where: { workoutSessionBlockItemId: { in: itemIds } },
-        })
-        await prisma.workoutSessionBlockItem.deleteMany({ where: { blockId: b.id } })
-      }
-      await prisma.workoutSessionBlock.delete({ where: { id: b.id } })
-
-      // If this block was part of a superset and only 1 member remains, clear its groupId
-      if (groupId) {
-        const remaining = await prisma.workoutSessionBlock.findMany({
-          where: { supersetGroupId: groupId },
-          select: { id: true },
-        })
-        if (remaining.length === 1) {
-          await prisma.workoutSessionBlock.update({
-            where: { id: remaining[0].id },
-            data: { supersetGroupId: null },
-          })
-        }
-      }
-
+      await workoutService.deleteBlock(req.user.sub, req.params.id)
       return reply.status(204).send()
     }
   )
@@ -351,18 +149,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const b = await ownedBlock(req.user.sub, req.params.id)
-      if (!b) return reply.status(404).send({ error: 'Not found' } as any)
-      const item = await prisma.workoutSessionBlockItem.create({
-        data: {
-          blockId: b.id,
-          reps: req.body.reps,
-          weight: req.body.weight,
-          duration: req.body.duration,
-          instructions: req.body.instructions,
-          order: b._count.items + 1,
-        },
-      })
+      const item = await workoutService.createItem(req.user.sub, req.params.id, req.body)
       return reply.status(201).send(item)
     }
   )
@@ -380,71 +167,24 @@ export async function workoutRoutes(fastify: FastifyInstance) {
         }),
       },
     },
-    async (req, reply) => {
-      const item = await ownedItem(req.user.sub, req.params.id)
-      if (!item) return reply.status(404).send({ error: 'Not found' } as any)
-      return prisma.workoutSessionBlockItem.update({
-        where: { id: item.id },
-        data: {
-          reps: req.body.reps,
-          weight: req.body.weight,
-          duration: req.body.duration,
-          ...(req.body.instructions !== undefined && { instructions: req.body.instructions }),
-        },
-      })
-    }
+    async (req) => workoutService.updateItem(req.user.sub, req.params.id, req.body)
   )
 
   app.delete(
     '/api/items/:id',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
     async (req, reply) => {
-      const item = await ownedItem(req.user.sub, req.params.id)
-      if (!item) return reply.status(404).send({ error: 'Not found' } as any)
-      await prisma.workoutSessionBlockItem.delete({ where: { id: item.id } })
+      await workoutService.deleteItem(req.user.sub, req.params.id)
       return reply.status(204).send()
     }
   )
 
   // ── Calendar / Executions ─────────────────────────────────────────────────
 
-  const executionInclude = {
-    workout: { select: { id: true, name: true } },
-    session: {
-      select: {
-        id: true,
-        name: true,
-        order: true,
-        blocks: {
-          orderBy: { order: 'asc' as const },
-          include: blockInclude,
-        },
-      },
-    },
-    blockExecutions: {
-      select: {
-        id: true,
-        workoutSessionBlockItemId: true,
-        reps: true,
-        weight: true,
-        duration: true,
-      },
-    },
-  }
-
   app.get(
     '/api/calendar',
     { schema: { querystring: z.object({ from: z.string(), to: z.string() }) } },
-    async (req) => {
-      const from = new Date(req.query.from)
-      const to = new Date(req.query.to)
-      to.setHours(23, 59, 59, 999)
-      return prisma.workoutExecution.findMany({
-        where: { userId: req.user.sub, date: { gte: from, lte: to } },
-        include: executionInclude,
-        orderBy: { date: 'asc' },
-      })
-    }
+    async (req) => workoutService.getCalendar(req.user.sub, new Date(req.query.from), new Date(req.query.to))
   )
 
   app.post(
@@ -459,17 +199,7 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const w = await ownedWorkout(req.user.sub, req.body.workoutId)
-      if (!w) return reply.status(404).send({ error: 'Not found' } as any)
-      const ex = await prisma.workoutExecution.create({
-        data: {
-          workoutId: w.id,
-          sessionId: req.body.sessionId ?? null,
-          userId: req.user.sub,
-          date: new Date(req.body.date),
-        },
-        include: executionInclude,
-      })
+      const ex = await workoutService.createExecution(req.user.sub, req.body)
       return reply.status(201).send(ex)
     }
   )
@@ -477,45 +207,20 @@ export async function workoutRoutes(fastify: FastifyInstance) {
   app.patch(
     '/api/executions/:id/start',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
-    async (req, reply) => {
-      const ex = await prisma.workoutExecution.findFirst({
-        where: { id: req.params.id, userId: req.user.sub },
-      })
-      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
-      return prisma.workoutExecution.update({
-        where: { id: ex.id },
-        data: { startedAt: new Date() },
-        include: executionInclude,
-      })
-    }
+    async (req) => workoutService.startExecution(req.user.sub, req.params.id)
   )
 
   app.patch(
     '/api/executions/:id/finish',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
-    async (req, reply) => {
-      const ex = await prisma.workoutExecution.findFirst({
-        where: { id: req.params.id, userId: req.user.sub },
-      })
-      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
-      return prisma.workoutExecution.update({
-        where: { id: ex.id },
-        data: { finishedAt: new Date() },
-        include: executionInclude,
-      })
-    }
+    async (req) => workoutService.finishExecution(req.user.sub, req.params.id)
   )
 
   app.delete(
     '/api/executions/:id',
     { schema: { params: z.object({ id: z.coerce.number() }) } },
     async (req, reply) => {
-      const ex = await prisma.workoutExecution.findFirst({
-        where: { id: req.params.id, userId: req.user.sub },
-      })
-      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
-      await prisma.workoutSessionBlockExecution.deleteMany({ where: { workoutExecutionId: ex.id } })
-      await prisma.workoutExecution.delete({ where: { id: ex.id } })
+      await workoutService.deleteExecution(req.user.sub, req.params.id)
       return reply.status(204).send()
     }
   )
@@ -535,30 +240,8 @@ export async function workoutRoutes(fastify: FastifyInstance) {
       },
     },
     async (req, reply) => {
-      const ex = await prisma.workoutExecution.findFirst({
-        where: { id: req.params.id, userId: req.user.sub },
-      })
-      if (!ex) return reply.status(404).send({ error: 'Not found' } as any)
-
-      const existing = await prisma.workoutSessionBlockExecution.findFirst({
-        where: { workoutExecutionId: ex.id, workoutSessionBlockItemId: req.body.blockItemId },
-      })
-
-      const data = {
-        reps: req.body.reps ?? null,
-        weight: req.body.weight ?? null,
-        duration: req.body.duration ?? null,
-      }
-
-      if (existing) {
-        return prisma.workoutSessionBlockExecution.update({ where: { id: existing.id }, data })
-      }
-
-      return reply.status(201).send(
-        await prisma.workoutSessionBlockExecution.create({
-          data: { workoutExecutionId: ex.id, workoutSessionBlockItemId: req.body.blockItemId, ...data },
-        })
-      )
+      const { created, result } = await workoutService.logSetResult(req.user.sub, req.params.id, req.body)
+      return reply.status(created ? 201 : 200).send(result)
     }
   )
 }
