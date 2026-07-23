@@ -216,3 +216,4 @@ Fastify's built-in `inject()` sends fake HTTP requests directly through the full
 ## Next version
 
 - [ ] Allow reordering exercises within a session
+- [ ] Exercise taxonomy + evidence-based programming/injury knowledge base for MCP-driven workout generation — design doc: `docs/exercise-knowledge-base.md`
