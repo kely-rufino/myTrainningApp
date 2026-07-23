@@ -82,8 +82,144 @@ describe('tools/list', () => {
     const { tools } = await client.listTools()
     const names = tools.map(t => t.name)
     expect(names).toEqual(
-      expect.arrayContaining(['list_workouts', 'create_workout', 'delete_workout', 'list_exercises', 'get_history'])
+      expect.arrayContaining(['list_workouts', 'create_workout', 'delete_workout', 'search_exercises', 'get_exercise', 'get_history', 'get_training_profile', 'update_training_profile'])
     )
+    await client.close()
+  })
+})
+
+describe('exercise tools — taxonomy and curation', () => {
+  it('create_exercise requires full taxonomy', async () => {
+    const { client, transport } = connectedClient(tokenA)
+    await client.connect(transport)
+    const res = await client.callTool({
+      name: 'create_exercise',
+      arguments: { name: 'MCP Incomplete Exercise' },
+    })
+    expect(res.isError).toBe(true)
+    await client.close()
+  })
+
+  it('create → search (uncurated) → get round-trips with taxonomy', async () => {
+    const { client, transport } = connectedClient(tokenA)
+    await client.connect(transport)
+
+    const created = await client.callTool({
+      name: 'create_exercise',
+      arguments: {
+        name: 'MCP Banded Row',
+        equipment: ['bands'],
+        primaryMuscle: 'middle_back',
+        movementPattern: 'horizontal_pull',
+        difficulty: 'beginner',
+      },
+    })
+    expect(created.isError).toBeFalsy()
+    const exercise = JSON.parse((created.content as Array<{ text: string }>)[0].text)
+    expect(exercise.isCurated).toBe(false)
+    expect(exercise.source).toBe('agent')
+    expect(exercise.equipment).toEqual(['bands'])
+
+    // Hidden from curated-only search (the default) …
+    const curatedOnly = await client.callTool({
+      name: 'search_exercises',
+      arguments: { query: 'MCP Banded Row' },
+    })
+    const curatedResult = JSON.parse((curatedOnly.content as Array<{ text: string }>)[0].text)
+    expect(curatedResult.total).toBe(0)
+
+    // … visible when uncurated rows are included, and filterable.
+    const withUncurated = await client.callTool({
+      name: 'search_exercises',
+      arguments: { equipment: ['bands'], movementPattern: 'horizontal_pull', includeUncurated: true },
+    })
+    const searchResult = JSON.parse((withUncurated.content as Array<{ text: string }>)[0].text)
+    expect(searchResult.items.some((e: { id: number }) => e.id === exercise.id)).toBe(true)
+    // Compact projection — no description in search results.
+    expect(searchResult.items[0].description).toBeUndefined()
+
+    const got = await client.callTool({ name: 'get_exercise', arguments: { exerciseId: exercise.id } })
+    const full = JSON.parse((got.content as Array<{ text: string }>)[0].text)
+    expect(full.name).toBe('MCP Banded Row')
+    expect(full.aliases).toEqual([])
+
+    await client.close()
+  })
+
+  it('training profile is scoped per token owner', async () => {
+    const a = connectedClient(tokenA)
+    await a.client.connect(a.transport)
+    const updated = await a.client.callTool({
+      name: 'update_training_profile',
+      arguments: { experienceLevel: 6, goal: 'hypertrophy', equipment: ['dumbbell'], injuries: ['low_back_pain'] },
+    })
+    expect(updated.isError).toBeFalsy()
+    const profileA = JSON.parse((updated.content as Array<{ text: string }>)[0].text)
+    expect(profileA.goal).toBe('hypertrophy')
+    expect(profileA.injuries).toEqual(['low_back_pain'])
+    await a.client.close()
+
+    const b = connectedClient(tokenB)
+    await b.client.connect(b.transport)
+    const got = await b.client.callTool({ name: 'get_training_profile', arguments: {} })
+    const profileB = JSON.parse((got.content as Array<{ text: string }>)[0].text)
+    expect(profileB.goal).toBeNull()
+    expect(profileB.equipment).toEqual([])
+    await b.client.close()
+  })
+
+  it('get_training_guidelines filters by profile and resolves citations', async () => {
+    const { client, transport } = connectedClient(tokenA)
+    await client.connect(transport)
+
+    // tokenA's profile was set above: experienceLevel 6, goal hypertrophy.
+    const res = await client.callTool({ name: 'get_training_guidelines', arguments: {} })
+    expect(res.isError).toBeFalsy()
+    const guide = JSON.parse((res.content as Array<{ text: string }>)[0].text)
+
+    expect(guide.rulesVersion).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(guide.profileUsed.experienceCategory).toBe('intermediate')
+    const keys = guide.guidelines.map((g: { key: string }) => g.key)
+    expect(keys).toContain('weekly_sets_per_muscle')
+    expect(keys).toContain('exercise_order')
+    // Strength-only rules must not leak into a hypertrophy profile.
+    expect(
+      guide.guidelines.every((g: { goals: string[] | null }) => g.goals === null || g.goals.includes('hypertrophy'))
+    ).toBe(true)
+    // Every served guideline's citations resolve to full metadata with a URL.
+    for (const g of guide.guidelines) {
+      for (const key of g.citations) {
+        expect(guide.citations[key].url).toMatch(/^https?:\/\//)
+      }
+    }
+
+    // Overrides swap the rule selection without touching the stored profile.
+    const strength = await client.callTool({
+      name: 'get_training_guidelines',
+      arguments: { goal: 'strength', experienceLevel: 2 },
+    })
+    const strengthGuide = JSON.parse((strength.content as Array<{ text: string }>)[0].text)
+    expect(strengthGuide.profileUsed.experienceCategory).toBe('novice')
+    const rest = strengthGuide.guidelines.find((g: { key: string }) => g.key === 'rest_between_sets')
+    expect(rest.value).toEqual({ min: 60, max: 120, unit: 'seconds' })
+
+    await client.close()
+  })
+
+  it('rejects vocabulary values outside the closed lists', async () => {
+    const { client, transport } = connectedClient(tokenA)
+    await client.connect(transport)
+    const res = await client.callTool({
+      name: 'create_exercise',
+      arguments: {
+        name: 'MCP Bad Vocab',
+        equipment: ['pecs-machine-3000'],
+        primaryMuscle: 'pecs',
+        movementPattern: 'pushing',
+        difficulty: 'легко',
+      },
+    })
+    expect(res.isError).toBe(true)
     await client.close()
   })
 })

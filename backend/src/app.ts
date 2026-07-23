@@ -11,6 +11,7 @@ import { workoutRoutes } from './routes/workouts.js'
 import { exerciseRoutes } from './routes/exercises.js'
 import { progressRoutes } from './routes/progress.js'
 import { apiTokenRoutes } from './routes/apiTokens.js'
+import { trainingProfileRoutes } from './routes/trainingProfile.js'
 import { mcpRoutes } from './routes/mcp.js'
 
 import './instrument.js'
@@ -42,6 +43,7 @@ export async function buildApp() {
   await app.register(exerciseRoutes)
   await app.register(progressRoutes)
   await app.register(apiTokenRoutes)
+  await app.register(trainingProfileRoutes)
   await app.register(mcpRoutes)
 
   app.get('/health', async () => ({ status: 'ok' }))

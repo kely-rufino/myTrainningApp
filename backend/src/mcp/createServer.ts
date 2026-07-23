@@ -2,6 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { registerWorkoutTools } from './tools/workouts.js'
 import { registerExerciseTools } from './tools/exercises.js'
 import { registerProgressTools } from './tools/progress.js'
+import { registerTrainingProfileTools } from './tools/trainingProfile.js'
+import { registerGuidelinesTools } from './tools/guidelines.js'
 
 // Built fresh per HTTP request (stateless Streamable HTTP mode) so every
 // tool call is closed over the userId resolved from that request's bearer
@@ -13,6 +15,8 @@ export function createMcpServerForUser(userId: number): McpServer {
   registerWorkoutTools(server, userId)
   registerExerciseTools(server, userId)
   registerProgressTools(server, userId)
+  registerTrainingProfileTools(server, userId)
+  registerGuidelinesTools(server, userId)
 
   return server
 }

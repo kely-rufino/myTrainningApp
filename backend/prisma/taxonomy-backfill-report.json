@@ -1,0 +1,624 @@
+{
+  "dryRun": false,
+  "totals": {
+    "rows": 253,
+    "curated": 178,
+    "skippedAlreadyDone": 0,
+    "noMetadata": 62
+  },
+  "equipmentUnresolved": [
+    {
+      "id": 78,
+      "name": "Biceps curl to shoulder press"
+    },
+    {
+      "id": 80,
+      "name": "Bottoms Up"
+    },
+    {
+      "id": 93,
+      "name": "Cocoons"
+    },
+    {
+      "id": 117,
+      "name": "FYR Thigh Killa"
+    },
+    {
+      "id": 147,
+      "name": "Lying Prone Quadriceps"
+    },
+    {
+      "id": 176,
+      "name": "Reverse-grip bent-over row"
+    },
+    {
+      "id": 185,
+      "name": "Seated finger curl"
+    },
+    {
+      "id": 191,
+      "name": "Seated triceps press"
+    },
+    {
+      "id": 194,
+      "name": "Shotgun row"
+    },
+    {
+      "id": 200,
+      "name": "Single Leg Push-off"
+    },
+    {
+      "id": 217,
+      "name": "Standing behind-the-back wrist curl"
+    },
+    {
+      "id": 234,
+      "name": "Traveling thigh killa"
+    },
+    {
+      "id": 245,
+      "name": "Yoga plex"
+    }
+  ],
+  "unknownMuscle": [],
+  "patternFromMuscleFallback": [
+    {
+      "id": 62,
+      "name": "Atlas Stones",
+      "pattern": "hinge"
+    },
+    {
+      "id": 66,
+      "name": "Band Hip Adductions",
+      "pattern": "isolation"
+    },
+    {
+      "id": 79,
+      "name": "Bicycling",
+      "pattern": "squat"
+    },
+    {
+      "id": 81,
+      "name": "Box Skip",
+      "pattern": "hinge"
+    },
+    {
+      "id": 7,
+      "name": "Cable Crossover",
+      "pattern": "horizontal_push"
+    },
+    {
+      "id": 84,
+      "name": "Cable V-bar push-down",
+      "pattern": "isolation"
+    },
+    {
+      "id": 92,
+      "name": "Close-grip pull-down",
+      "pattern": "horizontal_pull"
+    },
+    {
+      "id": 96,
+      "name": "Cross-over jack",
+      "pattern": "isolation"
+    },
+    {
+      "id": 97,
+      "name": "Decline EZ-bar skullcrusher",
+      "pattern": "isolation"
+    },
+    {
+      "id": 98,
+      "name": "Defensive Slide",
+      "pattern": "squat"
+    },
+    {
+      "id": 105,
+      "name": "Dumbbell pull-over",
+      "pattern": "isolation"
+    },
+    {
+      "id": 112,
+      "name": "EZ-Bar Skullcrusher",
+      "pattern": "isolation"
+    },
+    {
+      "id": 117,
+      "name": "FYR Thigh Killa",
+      "pattern": "isolation"
+    },
+    {
+      "id": 115,
+      "name": "Flexor Incline Dumbbell Curls",
+      "pattern": "isolation"
+    },
+    {
+      "id": 116,
+      "name": "Football Up-Down",
+      "pattern": "squat"
+    },
+    {
+      "id": 120,
+      "name": "Glute ham raise-",
+      "pattern": "hinge"
+    },
+    {
+      "id": 121,
+      "name": "Groiners",
+      "pattern": "isolation"
+    },
+    {
+      "id": 129,
+      "name": "HM Right Side-Kick",
+      "pattern": "isolation"
+    },
+    {
+      "id": 122,
+      "name": "Hammer Curls",
+      "pattern": "isolation"
+    },
+    {
+      "id": 124,
+      "name": "High Kick",
+      "pattern": "hinge"
+    },
+    {
+      "id": 133,
+      "name": "Incline Hammer Curls",
+      "pattern": "isolation"
+    },
+    {
+      "id": 136,
+      "name": "Jumping rope",
+      "pattern": "squat"
+    },
+    {
+      "id": 137,
+      "name": "Keg Load",
+      "pattern": "hinge"
+    },
+    {
+      "id": 140,
+      "name": "Lateral box jump",
+      "pattern": "isolation"
+    },
+    {
+      "id": 141,
+      "name": "Lateral cone hop",
+      "pattern": "isolation"
+    },
+    {
+      "id": 143,
+      "name": "Log Lift",
+      "pattern": "vertical_push"
+    },
+    {
+      "id": 144,
+      "name": "Low-cable cross-over",
+      "pattern": "horizontal_push"
+    },
+    {
+      "id": 147,
+      "name": "Lying Prone Quadriceps",
+      "pattern": "squat"
+    },
+    {
+      "id": 152,
+      "name": "Muscle Up",
+      "pattern": "horizontal_pull"
+    },
+    {
+      "id": 153,
+      "name": "Natural Glute Ham Raise",
+      "pattern": "hinge"
+    },
+    {
+      "id": 164,
+      "name": "Partner Superman with alternating high-five",
+      "pattern": "hinge"
+    },
+    {
+      "id": 169,
+      "name": "Power Stairs",
+      "pattern": "hinge"
+    },
+    {
+      "id": 172,
+      "name": "Push-press",
+      "pattern": "squat"
+    },
+    {
+      "id": 181,
+      "name": "Rower",
+      "pattern": "horizontal_pull"
+    },
+    {
+      "id": 182,
+      "name": "Sandbag Load",
+      "pattern": "squat"
+    },
+    {
+      "id": 190,
+      "name": "Seated Single-Leg Calf Press - Gethin Variation",
+      "pattern": "isolation"
+    },
+    {
+      "id": 191,
+      "name": "Seated triceps press",
+      "pattern": "isolation"
+    },
+    {
+      "id": 193,
+      "name": "Shadow boxing",
+      "pattern": "vertical_push"
+    },
+    {
+      "id": 199,
+      "name": "Side-to-side box skip",
+      "pattern": "squat"
+    },
+    {
+      "id": 200,
+      "name": "Single Leg Push-off",
+      "pattern": "squat"
+    },
+    {
+      "id": 206,
+      "name": "Single-Leg Lateral Hop",
+      "pattern": "squat"
+    },
+    {
+      "id": 204,
+      "name": "Single-leg balance and reach",
+      "pattern": "hinge"
+    },
+    {
+      "id": 223,
+      "name": "Standing hip circle",
+      "pattern": "isolation"
+    },
+    {
+      "id": 224,
+      "name": "Star Jump",
+      "pattern": "squat"
+    },
+    {
+      "id": 232,
+      "name": "Thigh adductor",
+      "pattern": "isolation"
+    },
+    {
+      "id": 233,
+      "name": "Tire flip",
+      "pattern": "squat"
+    },
+    {
+      "id": 234,
+      "name": "Traveling thigh killa",
+      "pattern": "isolation"
+    },
+    {
+      "id": 239,
+      "name": "Walking High Knee",
+      "pattern": "hinge"
+    },
+    {
+      "id": 245,
+      "name": "Yoga plex",
+      "pattern": "hinge"
+    }
+  ],
+  "patternUnresolved": [],
+  "noMetadataRows": [
+    {
+      "id": 54,
+      "name": "Ab Wheel Rollout",
+      "source": "user"
+    },
+    {
+      "id": 24,
+      "name": "Arnold Press",
+      "source": "user"
+    },
+    {
+      "id": 38,
+      "name": "Barbell Back Squat",
+      "source": "user"
+    },
+    {
+      "id": 1,
+      "name": "Barbell Bench Press",
+      "source": "user"
+    },
+    {
+      "id": 39,
+      "name": "Barbell Front Squat",
+      "source": "user"
+    },
+    {
+      "id": 18,
+      "name": "Barbell Overhead Press",
+      "source": "user"
+    },
+    {
+      "id": 10,
+      "name": "Barbell Row",
+      "source": "user"
+    },
+    {
+      "id": 45,
+      "name": "Bulgarian Split Squat",
+      "source": "user"
+    },
+    {
+      "id": 52,
+      "name": "Cable Crunch",
+      "source": "user"
+    },
+    {
+      "id": 29,
+      "name": "Cable Curl",
+      "source": "user"
+    },
+    {
+      "id": 8,
+      "name": "Chest Dips",
+      "source": "user"
+    },
+    {
+      "id": 13,
+      "name": "Chin-Up",
+      "source": "user"
+    },
+    {
+      "id": 249,
+      "name": "Close Neutral Grip Lat Pull Down",
+      "source": "user"
+    },
+    {
+      "id": 32,
+      "name": "Close-Grip Bench Press",
+      "source": "user"
+    },
+    {
+      "id": 30,
+      "name": "Concentration Curl",
+      "source": "user"
+    },
+    {
+      "id": 259,
+      "name": "Deadbug Pull Over - TSR",
+      "source": "user"
+    },
+    {
+      "id": 9,
+      "name": "Deadlift",
+      "source": "user"
+    },
+    {
+      "id": 3,
+      "name": "Decline Barbell Bench Press",
+      "source": "user"
+    },
+    {
+      "id": 37,
+      "name": "Diamond Push-Up",
+      "source": "user"
+    },
+    {
+      "id": 26,
+      "name": "Dumbbell Curl",
+      "source": "user"
+    },
+    {
+      "id": 19,
+      "name": "Dumbbell Shoulder Press",
+      "source": "user"
+    },
+    {
+      "id": 11,
+      "name": "Dumbbell Single-Arm Row",
+      "source": "user"
+    },
+    {
+      "id": 17,
+      "name": "Face Pull",
+      "source": "user"
+    },
+    {
+      "id": 252,
+      "name": "Front Foot Elevated Split Squad - TSR",
+      "source": "user"
+    },
+    {
+      "id": 21,
+      "name": "Front Raise",
+      "source": "user"
+    },
+    {
+      "id": 42,
+      "name": "Hack Squat",
+      "source": "user"
+    },
+    {
+      "id": 27,
+      "name": "Hammer Curl",
+      "source": "user"
+    },
+    {
+      "id": 53,
+      "name": "Hanging Leg Raise",
+      "source": "user"
+    },
+    {
+      "id": 49,
+      "name": "Hip Thrust",
+      "source": "user"
+    },
+    {
+      "id": 2,
+      "name": "Incline Barbell Bench Press",
+      "source": "user"
+    },
+    {
+      "id": 31,
+      "name": "Incline Dumbbell Curl",
+      "source": "user"
+    },
+    {
+      "id": 5,
+      "name": "Incline Dumbbell Press",
+      "source": "user"
+    },
+    {
+      "id": 14,
+      "name": "Lat Pulldown",
+      "source": "user"
+    },
+    {
+      "id": 20,
+      "name": "Lateral Raise",
+      "source": "user"
+    },
+    {
+      "id": 43,
+      "name": "Leg Curl",
+      "source": "user"
+    },
+    {
+      "id": 44,
+      "name": "Leg Extension",
+      "source": "user"
+    },
+    {
+      "id": 41,
+      "name": "Leg Press",
+      "source": "user"
+    },
+    {
+      "id": 255,
+      "name": "Long Rope Face Pull (w/ External Rotation) - TSR",
+      "source": "user"
+    },
+    {
+      "id": 257,
+      "name": "Low Incline DB Bench Press - TSR",
+      "source": "user"
+    },
+    {
+      "id": 251,
+      "name": "Mozart Prep",
+      "source": "user"
+    },
+    {
+      "id": 35,
+      "name": "Overhead Tricep Extension",
+      "source": "user"
+    },
+    {
+      "id": 51,
+      "name": "Plank",
+      "source": "user"
+    },
+    {
+      "id": 28,
+      "name": "Preacher Curl",
+      "source": "user"
+    },
+    {
+      "id": 12,
+      "name": "Pull-Up",
+      "source": "user"
+    },
+    {
+      "id": 256,
+      "name": "Rack Pec Minor Strech - TSR",
+      "source": "user"
+    },
+    {
+      "id": 22,
+      "name": "Rear Delt Fly",
+      "source": "user"
+    },
+    {
+      "id": 40,
+      "name": "Romanian Deadlift",
+      "source": "user"
+    },
+    {
+      "id": 55,
+      "name": "Russian Twist",
+      "source": "user"
+    },
+    {
+      "id": 15,
+      "name": "Seated Cable Row",
+      "source": "user"
+    },
+    {
+      "id": 48,
+      "name": "Seated Calf Raise",
+      "source": "user"
+    },
+    {
+      "id": 254,
+      "name": "Seated DB Shoulder Press (Neutral Grip) - TSR",
+      "source": "user"
+    },
+    {
+      "id": 250,
+      "name": "Seated Row",
+      "source": "user"
+    },
+    {
+      "id": 258,
+      "name": "Seated Row (Close Grip) - TSR",
+      "source": "user"
+    },
+    {
+      "id": 253,
+      "name": "Single Arm Lat Pull Down - TSR",
+      "source": "user"
+    },
+    {
+      "id": 33,
+      "name": "Skull Crusher",
+      "source": "user"
+    },
+    {
+      "id": 247,
+      "name": "Spiderman Rotation - TSR",
+      "source": "user"
+    },
+    {
+      "id": 47,
+      "name": "Standing Calf Raise",
+      "source": "user"
+    },
+    {
+      "id": 50,
+      "name": "Sumo Deadlift",
+      "source": "user"
+    },
+    {
+      "id": 36,
+      "name": "Tricep Dips",
+      "source": "user"
+    },
+    {
+      "id": 34,
+      "name": "Tricep Pushdown",
+      "source": "user"
+    },
+    {
+      "id": 23,
+      "name": "Upright Row",
+      "source": "user"
+    },
+    {
+      "id": 46,
+      "name": "Walking Lunge",
+      "source": "user"
+    }
+  ]
+}
