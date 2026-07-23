@@ -1,0 +1,520 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-07-23",
+  "experienceLevelMapping": {
+    "novice": [1, 3],
+    "intermediate": [4, 7],
+    "advanced": [8, 10],
+    "note": "App convention mapping the profile's 1-10 self-assessment onto the literature's novice/intermediate/advanced categories. The mapping itself is not evidence-based. Where a source distinguishes 'trained' vs 'untrained' populations, untrained is mapped to novice and trained to intermediate/advanced."
+  },
+  "citations": {
+    "schoenfeld2017volume": {
+      "authors": "Schoenfeld BJ, Ogborn D, Krieger JW",
+      "year": 2017,
+      "title": "Dose-response relationship between weekly resistance training volume and increases in muscle mass: A systematic review and meta-analysis",
+      "journal": "Journal of Sports Sciences",
+      "doi": "10.1080/02640414.2016.1210197",
+      "pubmedId": "27433992",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27433992/",
+      "accessLevel": "full_text"
+    },
+    "schoenfeld2016frequency": {
+      "authors": "Schoenfeld BJ, Ogborn D, Krieger JW",
+      "year": 2016,
+      "title": "Effects of Resistance Training Frequency on Measures of Muscle Hypertrophy: A Systematic Review and Meta-Analysis",
+      "journal": "Sports Medicine",
+      "doi": "10.1007/s40279-016-0543-8",
+      "pubmedId": null,
+      "url": "https://link.springer.com/article/10.1007/s40279-016-0543-8",
+      "accessLevel": "full_text"
+    },
+    "schoenfeld2019frequency": {
+      "authors": "Schoenfeld BJ, Grgic J, Krieger JW",
+      "year": 2019,
+      "title": "How many times per week should a muscle be trained to maximize muscle hypertrophy? A systematic review and meta-analysis of studies examining the effects of resistance training frequency",
+      "journal": "Journal of Sports Sciences",
+      "doi": "10.1080/02640414.2018.1555906",
+      "pubmedId": "30558493",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30558493/",
+      "accessLevel": "abstract"
+    },
+    "grgic2017restHypertrophy": {
+      "authors": "Grgic J, Lazinica B, Mikulic P, Krieger JW, Schoenfeld BJ",
+      "year": 2017,
+      "title": "The effects of short versus long inter-set rest intervals in resistance training on measures of muscle hypertrophy: A systematic review",
+      "journal": "European Journal of Sport Science",
+      "doi": "10.1080/17461391.2017.1340524",
+      "pubmedId": "28641044",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28641044/",
+      "accessLevel": "abstract"
+    },
+    "grgic2018restStrength": {
+      "authors": "Grgic J, Schoenfeld BJ, Skrepnik M, Davies TB, Mikulic P",
+      "year": 2018,
+      "title": "Effects of Rest Interval Duration in Resistance Training on Measures of Muscular Strength: A Systematic Review",
+      "journal": "Sports Medicine",
+      "doi": "10.1007/s40279-017-0788-x",
+      "pubmedId": "28933024",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/28933024/",
+      "accessLevel": "abstract"
+    },
+    "refalo2023failure": {
+      "authors": "Refalo MC, Helms ER, Trexler ET, Hamilton DL, Fyfe JJ",
+      "year": 2023,
+      "title": "Influence of Resistance Training Proximity-to-Failure on Skeletal Muscle Hypertrophy: A Systematic Review with Meta-analysis",
+      "journal": "Sports Medicine",
+      "doi": "10.1007/s40279-022-01784-y",
+      "pubmedId": "36334240",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9935748/",
+      "accessLevel": "full_text"
+    },
+    "robinson2024rir": {
+      "authors": "Robinson ZP, Pelland JC, Remmert JF, Refalo MC, Jukic I, Steele J, Zourdos MC",
+      "year": 2024,
+      "title": "Exploring the Dose-Response Relationship Between Estimated Resistance Training Proximity to Failure, Strength Gain, and Muscle Hypertrophy: A Series of Meta-Regressions",
+      "journal": "Sports Medicine",
+      "doi": "10.1007/s40279-024-02069-2",
+      "pubmedId": "38970765",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38970765/",
+      "accessLevel": "abstract"
+    },
+    "simao2012order": {
+      "authors": "Simão R, de Salles BF, Figueiredo T, Dias I, Willardson JM",
+      "year": 2012,
+      "title": "Exercise order in resistance training",
+      "journal": "Sports Medicine",
+      "doi": "10.2165/11597240-000000000-00000",
+      "pubmedId": "22292516",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/22292516/",
+      "accessLevel": "abstract"
+    },
+    "nunes2021order": {
+      "authors": "Nunes JP, Grgic J, Cunha PM, Ribeiro AS, Schoenfeld BJ, de Salles BF, Cyrino ES",
+      "year": 2021,
+      "title": "What influence does resistance exercise order have on muscular strength gains and muscle hypertrophy? A systematic review and meta-analysis",
+      "journal": "European Journal of Sport Science",
+      "doi": "10.1080/17461391.2020.1733672",
+      "pubmedId": "32077380",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32077380/",
+      "accessLevel": "abstract"
+    },
+    "acsm2009position": {
+      "authors": "American College of Sports Medicine (Ratamess NA, Alvar BA, Evetoch TK, Housh TJ, Kibler WB, Kraemer WJ, Triplett NT)",
+      "year": 2009,
+      "title": "American College of Sports Medicine position stand. Progression models in resistance training for healthy adults",
+      "journal": "Medicine & Science in Sports & Exercise",
+      "doi": "10.1249/MSS.0b013e3181915670",
+      "pubmedId": "19204579",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+      "accessLevel": "full_text"
+    },
+    "nsca2019olderAdults": {
+      "authors": "Fragala MS, Cadore EL, Dorgo S, Izquierdo M, Kraemer WJ, Peterson MD, Ryan ED",
+      "year": 2019,
+      "title": "Resistance Training for Older Adults: Position Statement From the National Strength and Conditioning Association",
+      "journal": "Journal of Strength and Conditioning Research",
+      "doi": null,
+      "pubmedId": null,
+      "url": "https://www.nsca.com/contentassets/2a4112fb355a4a48853bbafbe070fb8e/resistance_training_for_older_adults__position.1.pdf",
+      "accessLevel": "full_text"
+    },
+    "borde2015olderAdults": {
+      "authors": "Borde R, Hortobágyi T, Granacher U",
+      "year": 2015,
+      "title": "Dose-Response Relationships of Resistance Training in Healthy Old Adults: A Systematic Review and Meta-Analysis",
+      "journal": "Sports Medicine",
+      "doi": null,
+      "pubmedId": null,
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4656698/",
+      "accessLevel": "full_text"
+    }
+  },
+  "variables": [
+    {
+      "key": "weekly_sets_per_muscle",
+      "goals": ["hypertrophy"],
+      "experience": null,
+      "value": { "min": 10, "max": null, "unit": "sets per muscle group per week" },
+      "recommendation": "Perform at least 10 weekly sets per muscle group to maximize muscle growth. Lower volumes (<=4 weekly sets) still produce substantial (smaller) gains and are a valid starting point.",
+      "finding": "Graded dose-response: <5, 5-9, and 10+ weekly sets produced 5.4%, 6.6%, and 9.8% muscle growth respectively; each additional weekly set added ~0.37% gain. Authors: 'performance of at least 10 weekly sets per muscle group is necessary to maximise increases in muscle mass.'",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["schoenfeld2017volume"],
+      "caveats": [
+        "Upper limit unknown: 'the paucity of data investigating weekly volumes of >12 sets prevented analysis of very high training volumes' - do not extrapolate far beyond ~10-12 sets from this source alone.",
+        "Evidence base is mostly untrained individuals; only two included studies used resistance-trained subjects.",
+        "Authors advise monitoring individual response and adjusting dosage rather than applying the number rigidly."
+      ]
+    },
+    {
+      "key": "training_frequency_per_muscle",
+      "goals": ["hypertrophy"],
+      "experience": null,
+      "value": { "min": 1, "max": null, "unit": "sessions per muscle group per week" },
+      "recommendation": "Choose weekly training frequency per muscle group by preference and practicality; what matters is accumulating the weekly set target. Spreading volume over 2+ sessions per muscle is a reasonable default and was superior in earlier evidence.",
+      "finding": "2016 meta-analysis: training a muscle 2x/week outperformed 1x/week (6.8% vs 3.7% growth) on a volume-equated basis. The larger 2019 follow-up (25 studies) revised this: 'resistance training frequency does not significantly or meaningfully impact muscle hypertrophy when volume is equated. Thus, for a given training volume, individuals can choose a weekly frequency per muscle groups based on personal preference.'",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["schoenfeld2016frequency", "schoenfeld2019frequency"],
+      "caveats": [
+        "The two meta-analyses disagree; the 2019 (larger, newer) conclusion is treated as operative here.",
+        "Whether >3 sessions per muscle per week helps or harms is unstudied in the included literature."
+      ]
+    },
+    {
+      "key": "rest_between_sets",
+      "goals": ["strength"],
+      "experience": ["intermediate", "advanced"],
+      "value": { "min": 120, "max": null, "unit": "seconds" },
+      "recommendation": "Rest more than 2 minutes between sets to maximize strength gains in resistance-trained individuals.",
+      "finding": "'It seems that longer duration RIs (>2 min) are required to maximize strength gains in resistance-trained individuals.' (23 studies, 491 participants)",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["grgic2018restStrength"],
+      "caveats": [
+        "Trained/untrained population split mapped onto intermediate-advanced/novice per the experienceLevelMapping note.",
+        "Extracted from abstract; full text was paywalled."
+      ]
+    },
+    {
+      "key": "rest_between_sets",
+      "goals": ["strength"],
+      "experience": ["novice"],
+      "value": { "min": 60, "max": 120, "unit": "seconds" },
+      "recommendation": "Rest 60-120 seconds between sets; in untrained individuals this is sufficient to maximize strength gains.",
+      "finding": "'With regard to untrained individuals, it seems that short to moderate RIs (60-120 s) are sufficient for maximizing muscular strength gains.'",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["grgic2018restStrength"],
+      "caveats": [
+        "Trained/untrained population split mapped onto intermediate-advanced/novice per the experienceLevelMapping note.",
+        "Extracted from abstract; full text was paywalled."
+      ]
+    },
+    {
+      "key": "rest_between_sets",
+      "goals": ["hypertrophy"],
+      "experience": null,
+      "value": { "min": 60, "max": null, "unit": "seconds" },
+      "recommendation": "Both short (<=60 s) and long (>60 s) rest intervals can produce hypertrophy; for trained individuals, evidence suggests a possible advantage for long (>60 s) rest intervals.",
+      "finding": "'Both short and long inter-set rest intervals may be useful when training for achieving gains in muscle hypertrophy. Novel findings involving trained participants using measures sensitive to detect changes in muscle hypertrophy suggest a possible advantage for the use of long rest intervals.'",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["grgic2017restHypertrophy"],
+      "caveats": [
+        "Only six studies met inclusion; authors call for more research before a clear differentiation.",
+        "'Long' is defined in the source only as >60 seconds - no specific upper prescription is given.",
+        "Extracted from abstract; full text was paywalled."
+      ]
+    },
+    {
+      "key": "proximity_to_failure",
+      "goals": ["hypertrophy"],
+      "experience": null,
+      "value": null,
+      "recommendation": "Terminate most sets close to failure, but reaching outright momentary muscular failure is not required. If sets are taken to failure, bias that toward low-complexity exercises (e.g. single-joint), the last set of an exercise, and lower per-session set volumes, to limit accumulated fatigue.",
+      "finding": "Hypertrophy increases as sets are terminated closer to failure (negative dose-response slopes in all best-fit meta-regression models), but momentary failure showed no advantage over non-failure (ES 0.12, p=0.343). The verified literature quantifies direction only - it does NOT prescribe a numeric RIR range; any specific '0-2 RIR' style number is practitioner interpretation, not a sourced finding.",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["refalo2023failure", "robinson2024rir"],
+      "caveats": [
+        "No verified numeric RIR target exists - treat 'close to failure' qualitatively.",
+        "Robinson et al. call their analysis exploratory and warn the exact RIR relationship remains unclear.",
+        "Robinson et al. extracted from abstract; full text was paywalled."
+      ]
+    },
+    {
+      "key": "proximity_to_failure",
+      "goals": ["strength"],
+      "experience": null,
+      "value": null,
+      "recommendation": "Proximity to failure does not meaningfully drive strength gains - strength improves similarly across a wide range of reps-in-reserve. Do not sacrifice load or technique to chase failure when strength is the goal.",
+      "finding": "'Strength gains were similar across a wide range of RIR, while muscle hypertrophy improves as sets are terminated closer to failure.' (all best-fit strength models had marginal RIR slopes whose confidence intervals contained the null)",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["robinson2024rir"],
+      "caveats": [
+        "Extracted from abstract; full text was paywalled.",
+        "Authors describe the analysis as exploratory."
+      ]
+    },
+    {
+      "key": "exercise_order",
+      "goals": null,
+      "experience": null,
+      "value": null,
+      "recommendation": "Order exercises by priority: put the exercises most important to the user's goal first in the session, regardless of muscle size or compound/isolation status. Blanket 'compound before isolation' is NOT what the evidence says.",
+      "finding": "Strength gains are largest for exercises performed first in a session (Nunes 2021: MJ-first favors MJ strength ES 0.32, SJ-first favors SJ strength ES -0.58), while exercise order has no significant effect on hypertrophy (ES 0.03, p=0.862). Simao 2012: 'exercises be ordered based on priority of importance as dictated by the training goal of a programme, irrespective of whether the exercise involves a relatively large or small muscle group.'",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["simao2012order", "nunes2021order", "acsm2009position"],
+      "caveats": [
+        "Simao and Nunes extracted from abstracts; full texts were paywalled.",
+        "Total-session volume is higher for whatever is placed early - placement is a prioritization tool.",
+        "The older ACSM position stand (2009) recommends large-before-small / multi-joint-before-single-joint sequencing; the newer meta-analytic evidence above supersedes it for hypertrophy (order has no effect) and reframes it for strength (whatever goes first improves most)."
+      ]
+    },
+    {
+      "key": "loading",
+      "goals": ["strength"],
+      "experience": ["novice", "intermediate"],
+      "value": { "min": 60, "max": 70, "unit": "% of 1RM" },
+      "recommendation": "Train with loads of roughly 60-70% of 1RM for 8-12 repetitions per set.",
+      "finding": "'Training with loads ~60-70% of 1 RM for 8-12 repetitions for novice to intermediate individuals' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": [
+        "The document gives one approximate range for novice-to-intermediate; it does not separate the two levels for strength loading."
+      ]
+    },
+    {
+      "key": "loading",
+      "goals": ["strength"],
+      "experience": ["advanced"],
+      "value": { "min": 80, "max": 100, "unit": "% of 1RM" },
+      "recommendation": "Cycle loads of 80-100% of 1RM in a periodized manner.",
+      "finding": "'cycling loads of 80-100% of 1 RM for advanced individuals' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "load_progression",
+      "goals": ["strength"],
+      "experience": null,
+      "value": { "min": 2, "max": 10, "unit": "% load increase" },
+      "recommendation": "Increase the load by 2-10% when the current workload can be performed for 1-2 repetitions over the target on two consecutive sessions.",
+      "finding": "'a 2-10% increase in load be applied when the individual can perform the current workload for 1-2 repetitions over the desired number on two consecutive training sessions' (Evidence Category B).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "sets_per_exercise",
+      "goals": ["strength"],
+      "experience": ["novice"],
+      "value": { "min": 1, "max": 3, "unit": "sets per exercise" },
+      "recommendation": "Use 1-3 sets per exercise as a novice.",
+      "finding": "'It is recommended that 1-3 sets per exercise be used by novice individuals' (Evidence Category A). For intermediate/advanced progression the document recommends multiple-set programs with systematic variation of volume and intensity, without fixing a number.",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["strength"],
+      "experience": ["novice"],
+      "value": { "min": 2, "max": 3, "unit": "days per week (whole-body sessions)" },
+      "recommendation": "Train the entire body 2-3 days per week.",
+      "finding": "'It is recommended that novice individuals train the entire body 2-3 d/wk' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["strength"],
+      "experience": ["intermediate"],
+      "value": { "min": 3, "max": 4, "unit": "days per week" },
+      "recommendation": "Train 3-4 days per week.",
+      "finding": "'for progression to intermediate training, a frequency of 3-4 d/wk be used' (Evidence Category B).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["strength"],
+      "experience": ["advanced"],
+      "value": { "min": 4, "max": 6, "unit": "days per week" },
+      "recommendation": "Train 4-6 days per week using muscle-group or upper/lower splits.",
+      "finding": "'It is recommended that advanced lifters train 4-6 d/wk' (Evidence Category C, Table 2).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": [
+        "Internal inconsistency in the source: the abstract says 4-5 d/wk for advanced training while Table 2 says 4-6 d/wk. Both appear in the published document."
+      ]
+    },
+    {
+      "key": "rest_between_sets_by_exercise_role",
+      "goals": ["strength"],
+      "experience": null,
+      "value": null,
+      "recommendation": "Rest at least 2-3 minutes between sets of core (heavy, multi-joint) exercises at all experience levels; 1-2 minutes may suffice for assistance exercises.",
+      "finding": "'It is recommended that rest periods of at least 2-3 min be used for core exercises using heavier loads for novice, intermediate, and advanced training. For assistance exercises, a shorter rest period length of 1-2 min may suffice.' (Evidence Categories B/C)",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": [
+        "Consistent with the meta-analytic rest_between_sets rule (>2 min to maximize strength in trained individuals)."
+      ]
+    },
+    {
+      "key": "loading",
+      "goals": ["hypertrophy"],
+      "experience": ["novice", "intermediate"],
+      "value": { "min": 70, "max": 85, "unit": "% of 1RM" },
+      "recommendation": "Use moderate loading of 70-85% of 1RM for 8-12 repetitions per set, 1-3 sets per exercise.",
+      "finding": "'For novice and intermediate training, it is recommended that moderate loading be used (70-85% of 1 RM) for 8-12 repetitions per set for 1-3 sets per exercise' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "loading",
+      "goals": ["hypertrophy"],
+      "experience": ["advanced"],
+      "value": { "min": 70, "max": 100, "unit": "% of 1RM" },
+      "recommendation": "Use 70-100% of 1RM for 1-12 repetitions per set, 3-6 sets per exercise, periodized so most training sits in the 6-12RM range.",
+      "finding": "'For advanced training, it is recommended that a loading range of 70-100% of 1 RM be used for 1-12 repetitions per set for 3-6 sets per exercise in a periodized manner such that the majority of training is devoted to 6-12 RM and less training devoted to 1-6 RM loading' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "rest_between_sets",
+      "goals": ["hypertrophy"],
+      "experience": ["novice", "intermediate"],
+      "value": { "min": 60, "max": 120, "unit": "seconds" },
+      "recommendation": "Rest 1-2 minutes between sets for novice and intermediate hypertrophy training.",
+      "finding": "'It is recommended that 1- to 2-min rest periods be used in novice and intermediate training' (Evidence Category C). For advanced training the document ties rest to the exercise's goal: 2-3 min for heavy core lifts, 1-2 min otherwise.",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": [
+        "The newer meta-analytic rest_between_sets rule suggests a possible advantage for longer (>60 s) rest in trained individuals - both entries are served so the client can weigh tiers."
+      ]
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["hypertrophy"],
+      "experience": ["novice"],
+      "value": { "min": 2, "max": 3, "unit": "days per week (whole-body sessions)" },
+      "recommendation": "Train 2-3 days per week (whole-body sessions).",
+      "finding": "'a frequency of 2-3 d/wk be used for novice training' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["hypertrophy"],
+      "experience": ["intermediate"],
+      "value": { "min": 2, "max": 4, "unit": "days per week" },
+      "recommendation": "Train 2-3 days per week for total-body workouts, or 4 days per week using an upper/lower split.",
+      "finding": "'For intermediate training, the recommendation is similar for total-body workouts or 4 d/wk when using an upper/lower body split routine' (Evidence Category B).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["hypertrophy"],
+      "experience": ["advanced"],
+      "value": { "min": 4, "max": 6, "unit": "days per week" },
+      "recommendation": "Train 4-6 days per week.",
+      "finding": "'For advanced training, a frequency of 4-6 d/wk is recommended' (Evidence Category C).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "loading",
+      "goals": ["endurance"],
+      "experience": null,
+      "value": { "min": 40, "max": 60, "unit": "% of 1RM" },
+      "recommendation": "Use light-to-moderate loads (40-60% of 1RM) for high repetitions (>15) with short rest periods (<90 s).",
+      "finding": "Abstract: 'light to moderate loads (40-60% of 1 RM) be performed for high repetitions (>15) using short rest periods (<90 s)'.",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "reps_per_set",
+      "goals": ["endurance"],
+      "experience": ["novice", "intermediate"],
+      "value": { "min": 10, "max": 15, "unit": "repetitions per set" },
+      "recommendation": "Use relatively light loads for 10-15 repetitions with moderate to high volume.",
+      "finding": "'For novice and intermediate training, it is recommended that relatively light loads be used (10-15 repetitions) with moderate to high volume' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "reps_per_set",
+      "goals": ["endurance"],
+      "experience": ["advanced"],
+      "value": { "min": 10, "max": 25, "unit": "repetitions per set" },
+      "recommendation": "Use varied loading strategies for multiple sets of 10-25+ repetitions in a periodized manner, with higher overall volume at lighter intensities.",
+      "finding": "'For advanced training, it is recommended that various loading strategies be used for multiple sets per exercise (10-25 repetitions or more) in a periodized manner leading to a higher overall volume using lighter intensities' (Evidence Category C).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "rest_between_sets",
+      "goals": ["endurance"],
+      "experience": null,
+      "value": null,
+      "recommendation": "Keep rest short: 1-2 minutes for high-repetition sets (15-20+ reps), under 1 minute for moderate sets (10-15 reps).",
+      "finding": "'It is recommended that short rest periods be used for muscular endurance training, e.g., 1-2 min for high-repetition sets (15-20 repetitions or more), less than 1 minute for moderate (10-15 repetitions) sets' (Evidence Category C).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["endurance"],
+      "experience": ["novice"],
+      "value": { "min": 2, "max": 3, "unit": "days per week (whole-body sessions)" },
+      "recommendation": "Train the entire body 2-3 days per week.",
+      "finding": "'Low frequency (2-3 d/wk) is effective in novice individuals when training the entire body' (Evidence Category A).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["endurance"],
+      "experience": ["intermediate"],
+      "value": { "min": 3, "max": 4, "unit": "days per week" },
+      "recommendation": "Train 3 days per week for total-body workouts, 4 days per week for an upper/lower split.",
+      "finding": "'For intermediate training, 3 d/wk is recommended for total-body workouts and 4 d/wk is recommended for upper/lower body split routine workouts' (Evidence Category C).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "weekly_training_days",
+      "goals": ["endurance"],
+      "experience": ["advanced"],
+      "value": { "min": 4, "max": 6, "unit": "days per week" },
+      "recommendation": "A higher frequency (4-6 days per week) may be used with muscle-group split routines.",
+      "finding": "'For advanced training, a higher frequency may be used (4-6 d/wk) if muscle group split routines are used' (Evidence Category C).",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["acsm2009position"],
+      "caveats": []
+    },
+    {
+      "key": "older_adults_prescription",
+      "goals": null,
+      "experience": null,
+      "value": null,
+      "population": "older adults (65+ per NSCA definition; 'older than 60' for the intensity figure)",
+      "appliesFromAge": 60,
+      "recommendation": "For older adults: 2-3 sets of 6-12 repetitions at 50-85% of 1RM per muscle group; in healthy adults over 60, intensity should reach 70-85% of 1RM. Training to outright failure is not necessary - 50-70% of the maximal possible repetitions in good form is sufficient.",
+      "finding": "'2-3 sets of 6-12 repetitions at 50-85% of 1RM per muscle group should be prescribed to promote greater maximal strength and muscle size gains'; 'in healthy adults older than 60 years of age, resistance training intensity should achieve 70-85% of 1RM'; 'repetitions to failure are not necessary and do not promote additional physiological adaptations in older individuals'.",
+      "evidenceTier": "position_stand",
+      "citationKeys": ["nsca2019olderAdults"],
+      "caveats": [
+        "Population is 65+/60+. No locatable evidence supports modified prescriptions starting at age 45 - the original design's '45+ modifiers' (joint-friendly variants, mandatory warm-up, RIR cap) were checked and are NOT evidence-backed at that threshold; do not apply this rule to middle-aged users."
+      ]
+    },
+    {
+      "key": "older_adults_dose_response",
+      "goals": null,
+      "experience": null,
+      "value": null,
+      "population": "healthy old adults (studies aged 60+, analyzed cohort mean age 70.4)",
+      "appliesFromAge": 60,
+      "recommendation": "Doses associated with the largest effects in older adults - strength: 2 sessions/week, 2-3 sets per exercise, 7-9 reps per set, 70-79% of 1RM, 60 s rest between sets. Muscle morphology: 3 sessions/week, 2-3 sets, 7-9 reps, 51-69% of 1RM, 120 s rest between sets.",
+      "finding": "For strength: 'a training intensity of 70-79% of the one-repetition maximum (1RM)... a rest in between sets of 60 s... a training frequency of two sessions per week, a training volume of two to three sets per exercise, seven to nine repetitions per set'. For morphology: 'a training frequency of three sessions per week... a training intensity from 51 to 69% of the 1RM... a rest of 120 s between sets'.",
+      "evidenceTier": "meta_analysis",
+      "citationKeys": ["borde2015olderAdults"],
+      "caveats": [
+        "Derived from studies with mean cohort age 70.4 - not evidence for younger users.",
+        "The associated training periods in the source were ~50-53 weeks; these are 'largest observed effect' doses, not minimums."
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest'
 import { appPromise } from '../testApp.js'
+import { prisma } from '../../lib/prisma.js'
 
 const TEST_USER = {
   email: 'exercises-test@example.com',
@@ -233,5 +234,85 @@ describe('DELETE /api/exercises/:id', () => {
       url: '/api/exercises/1',
     })
     expect(res.statusCode).toBe(401)
+  })
+})
+
+describe('taxonomy fields', () => {
+  it('creates an exercise with taxonomy and returns decoded arrays', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/exercises',
+      headers: { cookie: authCookie },
+      body: {
+        name: 'Goblet Squat',
+        equipment: ['dumbbell', 'kettlebell'],
+        primaryMuscle: 'quadriceps',
+        secondaryMuscles: ['glutes'],
+        movementPattern: 'squat',
+        spaceFootprint: 'stationary',
+        difficulty: 'beginner',
+      },
+    })
+    expect(res.statusCode).toBe(201)
+    const body = res.json()
+    expect(body.equipment).toEqual(['dumbbell', 'kettlebell'])
+    expect(body.secondaryMuscles).toEqual(['glutes'])
+    expect(body.movementPattern).toBe('squat')
+    expect(body.isCurated).toBe(false)
+    expect(body.source).toBe('user')
+  })
+
+  it('rejects values outside the closed vocabularies', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/exercises',
+      headers: { cookie: authCookie },
+      body: { name: 'Bad Vocab Exercise', equipment: ['flux-capacitor'] },
+    })
+    expect(res.statusCode).toBe(400)
+  })
+})
+
+describe('curation and aliases', () => {
+  let curatedId: number
+
+  beforeAll(async () => {
+    const curated = await prisma.exercise.create({
+      data: { name: 'Curated Library Row', isCurated: true, source: 'api-ninjas' },
+    })
+    curatedId = curated.id
+    await prisma.exerciseAlias.create({
+      data: { alias: 'db press', exerciseId: curatedId },
+    })
+  })
+
+  it('returns 403 when updating a curated exercise', async () => {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: `/api/exercises/${curatedId}`,
+      headers: { cookie: authCookie },
+      body: { name: 'Renamed Curated Row' },
+    })
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('returns 403 when deleting a curated exercise', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/api/exercises/${curatedId}`,
+      headers: { cookie: authCookie },
+    })
+    expect(res.statusCode).toBe(403)
+  })
+
+  it('returns 409 when creating an exercise whose name is a known alias', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/exercises',
+      headers: { cookie: authCookie },
+      body: { name: 'DB Press' },
+    })
+    expect(res.statusCode).toBe(409)
+    expect(res.json().error).toContain('alias')
   })
 })

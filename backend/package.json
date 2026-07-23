@@ -11,6 +11,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "exercises:fetch": "tsx scripts/fetch-exercises.ts",
+    "exercises:backfill": "tsx scripts/backfill-taxonomy.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

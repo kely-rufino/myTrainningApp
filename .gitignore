@@ -43,3 +43,6 @@ pids/
 
 # Coverage directory used by tools like istanbul
 coverage/
+# SQLite test/scratch databases
+backend/test.db*
+backend/prisma/dev.db

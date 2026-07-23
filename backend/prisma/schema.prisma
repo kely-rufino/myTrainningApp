@@ -27,6 +27,26 @@ model User {
   workouts       Workout[]
   executions     WorkoutExecution[]
   apiTokens      ApiToken[]
+  trainingProfile TrainingProfile?
+}
+
+// Persisted training constraints — what makes guideline/plan tools work the
+// same across every MCP client and session instead of being re-inferred from
+// conversation. Multi-valued fields are JSON string arrays validated against
+// closed vocabularies (src/lib/trainingVocab.ts, exerciseTaxonomy.ts).
+model TrainingProfile {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  experienceLevel Int? // 1–10 self-assessed
+  goal            String?
+  equipment       String? // JSON array — same vocabulary as Exercise.equipment
+  spaceConstraint String? // largest footprint available (exerciseTaxonomy SPACE_FOOTPRINTS)
+  daysPerWeek     Int?
+  injuries        String? // JSON array — closed condition list (trainingVocab.ts)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id])
 }
 
 model ApiToken {
@@ -47,7 +67,35 @@ model Exercise {
   description String?
   image       String?
   videoUrl    String?
-  blocks      WorkoutSessionBlock[]
+  // Taxonomy — String columns validated against closed vocabularies in
+  // src/lib/exerciseTaxonomy.ts (Prisma enums are not supported on SQLite).
+  // Multi-valued fields are JSON-encoded string arrays.
+  equipment        String?
+  primaryMuscle    String?
+  secondaryMuscles String?
+  movementPattern  String?
+  spaceFootprint   String?
+  difficulty       String?
+  // Provenance — filtered reads default to curated-only rows.
+  source     String    @default("user")
+  license    String?
+  isCurated  Boolean   @default(false)
+  verifiedAt DateTime?
+  aliases    ExerciseAlias[]
+  blocks     WorkoutSessionBlock[]
+
+  @@index([isCurated])
+  @@index([movementPattern])
+  @@index([primaryMuscle])
+}
+
+// Many names → one canonical exercise ("DB Press" → "Dumbbell Bench Press").
+// Aliases are stored normalized (lowercase, trimmed) — see exerciseTaxonomy.ts.
+model ExerciseAlias {
+  id         Int      @id @default(autoincrement())
+  alias      String   @unique
+  exerciseId Int
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 }
 
 model Workout {
