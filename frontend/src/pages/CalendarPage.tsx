@@ -3,6 +3,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { apiFetch } from '../lib/api'
 import type { Block, Workout, WorkoutListItem } from '../lib/workoutTypes'
 import { useToast } from '../lib/toast'
+import VideoSheet, { VideoButton } from '../components/VideoSheet'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -239,6 +240,12 @@ function BlockLog({
   )
 }
 
+// Completed = every planned set of every block in the group has a logged entry
+function isGroupComplete(blocks: Block[], loggedMap: Map<number, BlockExecution>) {
+  const totalSets = blocks.reduce((n, b) => n + b.items.length, 0)
+  return totalSets > 0 && blocks.every(b => b.items.every(i => loggedMap.has(i.id)))
+}
+
 function ExerciseGroupRow({
   blocks,
   loggedMap,
@@ -253,45 +260,78 @@ function ExerciseGroupRow({
   sessionStarted: boolean
 }) {
   const [open, setOpen] = useState(initiallyOpen ?? false)
+  const [video, setVideo] = useState<{ url: string; title: string } | null>(null)
   const isSuperset = blocks.length > 1
   const names = blocks.map(b => b.exercise.name)
+  const singleVideo = !isSuperset ? blocks[0].exercise.videoUrl : null
+
+  const completed = isGroupComplete(blocks, loggedMap)
 
   return (
     <div className="border-b border-gray-100 last:border-0">
-      <button
-        className="w-full flex items-center justify-between py-3 text-left"
-        onClick={() => setOpen(o => !o)}
-      >
-        <div className="flex-1 min-w-0">
-          {isSuperset && (
-            <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide block mb-0.5">
-              Superset
-            </span>
-          )}
-          <p className="text-sm font-medium text-gray-800 truncate">
-            {names.join(' + ')}
-          </p>
-        </div>
-        <svg
-          className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+      <div className="flex items-center">
+        <button
+          className="flex-1 min-w-0 flex items-center justify-between py-3 text-left"
+          onClick={() => setOpen(o => !o)}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+          <div className="flex-1 min-w-0">
+            {isSuperset && (
+              <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide block mb-0.5">
+                Superset
+              </span>
+            )}
+            <div className="flex items-center gap-1.5 min-w-0">
+              {completed && (
+                <svg
+                  className="w-4 h-4 text-green-500 shrink-0"
+                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  aria-label="Completed"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+              <p className={`text-sm font-medium truncate ${completed ? 'text-green-600' : 'text-gray-800'}`}>
+                {names.join(' + ')}
+              </p>
+            </div>
+          </div>
+          <svg
+            className={`w-4 h-4 text-gray-400 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {singleVideo && (
+          <VideoButton
+            onClick={() => setVideo({ url: singleVideo, title: blocks[0].exercise.name })}
+            className="ml-2"
+          />
+        )}
+      </div>
 
       {open && (
         <div className={`pb-3 ${isSuperset ? 'flex flex-col gap-3' : ''}`}>
           {isSuperset
             ? blocks.map(b => (
                 <div key={b.id} className="border-l-4 border-blue-300 pl-3">
-                  <p className="text-xs font-semibold text-gray-500 mb-1">{b.exercise.name}</p>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-xs font-semibold text-gray-500 truncate">{b.exercise.name}</p>
+                    {b.exercise.videoUrl && (
+                      <VideoButton onClick={() => setVideo({ url: b.exercise.videoUrl!, title: b.exercise.name })} />
+                    )}
+                  </div>
                   <BlockLog block={b} loggedMap={loggedMap} executionId={executionId} sessionStarted={sessionStarted} />
                 </div>
               ))
             : <BlockLog block={blocks[0]} loggedMap={loggedMap} executionId={executionId} sessionStarted={sessionStarted} />
           }
         </div>
+      )}
+
+      {video && (
+        <VideoSheet url={video.url} title={video.title} onClose={() => setVideo(null)} />
       )}
     </div>
   )
@@ -485,9 +525,13 @@ export default function CalendarPage() {
     onError: () => toast.show('Failed to start session'),
   })
 
+  const [confirmFinish, setConfirmFinish] = useState<number | null>(null)
   const finishMutation = useMutation({
     mutationFn: (id: number) => apiFetch<CalendarExecution>(`/executions/${id}/finish`, { method: 'PATCH' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['calendar'] })
+      setConfirmFinish(null)
+    },
     onError: () => toast.show('Failed to end session'),
   })
 
@@ -542,6 +586,17 @@ export default function CalendarPage() {
     }
     return map
   }, [selectedExecution])
+
+  // Exercise groups with sets still missing a logged entry
+  const pendingGroups = useMemo(
+    () => blockGroups.filter(g => !isGroupComplete(g, loggedMap)),
+    [blockGroups, loggedMap]
+  )
+
+  function handleFinish(id: number) {
+    if (pendingGroups.length > 0) { setConfirmFinish(id); return }
+    finishMutation.mutate(id)
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -655,7 +710,7 @@ export default function CalendarPage() {
               </button>
             ) : !selectedExecution.finishedAt ? (
               <button
-                onClick={() => finishMutation.mutate(selectedExecution.id)}
+                onClick={() => handleFinish(selectedExecution.id)}
                 disabled={finishMutation.isPending}
                 className="w-full py-3.5 bg-red-500 text-white rounded-2xl font-semibold text-sm active:opacity-80 disabled:opacity-40 transition-opacity"
               >
@@ -710,6 +765,41 @@ export default function CalendarPage() {
           onClose={() => setPickerOpen(false)}
           onScheduled={() => qc.invalidateQueries({ queryKey: ['calendar'] })}
         />
+      )}
+
+      {confirmFinish !== null && (
+        <div className="fixed inset-0 z-50 flex items-end">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setConfirmFinish(null)} />
+          <div className="relative w-full bg-white rounded-t-2xl px-5 py-6 flex flex-col gap-3">
+            <p className="font-semibold text-gray-900 text-center">Pending exercises</p>
+            <p className="text-sm text-gray-400 text-center">
+              {pendingGroups.length === 1
+                ? '1 exercise still has sets without a result.'
+                : `${pendingGroups.length} exercises still have sets without a result.`}
+            </p>
+            <div className="max-h-40 overflow-y-auto flex flex-col gap-1">
+              {pendingGroups.map(g => (
+                <p key={g[0].id} className="text-sm text-gray-600 text-center truncate">
+                  {g.map(b => b.exercise.name).join(' + ')}
+                </p>
+              ))}
+            </div>
+            <p className="text-sm text-gray-400 text-center">End the session anyway?</p>
+            <button
+              onClick={() => finishMutation.mutate(confirmFinish)}
+              disabled={finishMutation.isPending}
+              className="w-full py-3 bg-red-500 text-white rounded-xl font-semibold active:opacity-80 disabled:opacity-40"
+            >
+              {finishMutation.isPending ? 'Finishing…' : 'End Session'}
+            </button>
+            <button
+              onClick={() => setConfirmFinish(null)}
+              className="w-full py-3 text-gray-500 font-semibold"
+            >
+              Keep training
+            </button>
+          </div>
+        </div>
       )}
 
       {confirmDelete !== null && (
