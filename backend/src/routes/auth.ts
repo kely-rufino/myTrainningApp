@@ -26,6 +26,14 @@ const userSchema = z.object({
   avatar: z.string().nullable(),
 })
 
+// Tests drive these endpoints repeatedly against one in-process app instance,
+// so the limits would trip on the suite rather than on an attacker.
+const rateLimitsEnabled = process.env.NODE_ENV !== 'test'
+
+function limit(max: number, timeWindow: string) {
+  return { rateLimit: rateLimitsEnabled ? { max, timeWindow } : (false as const) }
+}
+
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
@@ -40,6 +48,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   app.post(
     '/api/auth/register',
     {
+      config: limit(5, '1 hour'),
       schema: {
         body: z.object({
           email: z.email(),
@@ -71,6 +80,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   app.post(
     '/api/auth/login',
     {
+      config: limit(8, '1 minute'),
       schema: {
         body: z.object({
           email: z.email(),
@@ -157,6 +167,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   app.post(
     '/api/auth/forgot-password',
     {
+      // Each hit sends a real email through Resend, so this is a billing
+      // control as much as a security one.
+      config: limit(3, '1 hour'),
       schema: {
         body: z.object({ email: z.email() }),
         response: { 200: z.object({ ok: z.boolean() }) },
@@ -204,6 +217,9 @@ export async function authRoutes(fastify: FastifyInstance) {
   app.post(
     '/api/auth/reset-password',
     {
+      // The token is 32 random bytes, so this guards the endpoint's cost
+      // rather than the token's entropy.
+      config: limit(10, '1 hour'),
       schema: {
         body: z.object({
           token: z.string(),
