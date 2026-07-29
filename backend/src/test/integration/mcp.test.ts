@@ -82,7 +82,7 @@ describe('tools/list', () => {
     const { tools } = await client.listTools()
     const names = tools.map(t => t.name)
     expect(names).toEqual(
-      expect.arrayContaining(['list_workouts', 'create_workout', 'delete_workout', 'search_exercises', 'get_exercise', 'get_history', 'get_training_profile', 'update_training_profile'])
+      expect.arrayContaining(['list_workouts', 'create_workout', 'delete_workout', 'search_exercises', 'get_exercise', 'get_history', 'get_training_profile', 'update_training_profile', 'get_training_signals'])
     )
     await client.close()
   })
@@ -202,6 +202,41 @@ describe('exercise tools — taxonomy and curation', () => {
     expect(strengthGuide.profileUsed.experienceCategory).toBe('novice')
     const rest = strengthGuide.guidelines.find((g: { key: string }) => g.key === 'rest_between_sets')
     expect(rest.value).toEqual({ min: 60, max: 120, unit: 'seconds' })
+
+    await client.close()
+  })
+
+  it('says an outcome has no rules rather than serving a neighbouring goal\'s numbers', async () => {
+    const { client, transport } = connectedClient(tokenA)
+    await client.connect(transport)
+
+    const res = await client.callTool({
+      name: 'get_training_guidelines',
+      arguments: { primaryOutcome: 'mental_health_cognition' },
+    })
+    const guide = JSON.parse((res.content as Array<{ text: string }>)[0].text)
+
+    expect(guide.profileUsed.primaryOutcome).toBe('mental_health_cognition')
+    expect(guide.outcomeUnsupported).toBe(true)
+    expect(guide.outcomeNote).toContain('mental_health_cognition')
+    // Only universally-applicable rules survive — no hypertrophy numbers leak in.
+    expect(guide.guidelines.every((g: { goals: string[] | null }) => g.goals === null)).toBe(true)
+
+    await client.close()
+  })
+
+  it('routes a supported outcome onto the rules its legacy goal selected', async () => {
+    const { client, transport } = connectedClient(tokenA)
+    await client.connect(transport)
+
+    const res = await client.callTool({
+      name: 'get_training_guidelines',
+      arguments: { primaryOutcome: 'hypertrophy' },
+    })
+    const guide = JSON.parse((res.content as Array<{ text: string }>)[0].text)
+
+    expect(guide.outcomeUnsupported).toBe(false)
+    expect(guide.guidelines.map((g: { key: string }) => g.key)).toContain('weekly_sets_per_muscle')
 
     await client.close()
   })

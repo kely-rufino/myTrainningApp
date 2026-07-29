@@ -84,6 +84,14 @@ WorkoutExecution (a user starts a workout on a given day)
 **ApiToken** — a Personal Access Token used to authenticate MCP clients as a given user
 - id, userId, name, tokenHash (unique, sha256), tokenPrefix (for display), lastUsedAt (optional), expiresAt (optional), createdAt
 
+**TrainingProfile** — the constraints every plan-building flow reads (one per user)
+- id, userId (unique), experienceLevel (1–10), spaceConstraint, daysPerWeek, minutesPerSession, injuries, notes
+- `primaryOutcome` + `secondaryOutcomes` — what the user is training for (`PRIMARY_OUTCOMES` in `lib/trainingVocab.ts`). Supersedes `goal`, which conflated outcome, modality and adherence state; `goal` remains as a **deprecated read-only alias for one release** and a write to it is translated rather than ignored, so the two cannot drift.
+- `equipment` — a **quantitative inventory**, not a tag list: `{ schema: 2, items: [{ type, pairs?, loads?, barWeight?, plates?, … }] }`. A tag array cannot answer "can this user actually load this exercise". Legacy schema-1 tag arrays are upgraded on read (`lib/equipmentInventory.ts`) and written back in the new shape on the next update — no bulk data migration against the live volume. **A missing `loads` means unknown, not zero**; `equipmentLoadsUnknown` on the response is the trigger to ask.
+- `excludedExercises` — `{ exerciseId, reason, addedAt }[]`, reason from a closed list, so "I hate lunges" is stated once rather than in every session and every client.
+- `adherenceTier` — **manual override only**; the tier is normally derived from execution history by `get_training_signals`, and the effective value is `override ?? derived`. The override exists because a user who trains without logging is indistinguishable from one who doesn't, and the tier gates plan validation.
+- `typicalSleepHours`, `lifeStressLevel` — recovery context; these cap intensity rather than excluding movements.
+
 ---
 
 ## MCP server
@@ -93,7 +101,8 @@ The backend exposes a Model Context Protocol server so a user's own AI agent (Cl
 - **Endpoint**: `POST /mcp` — Streamable HTTP transport (`@modelcontextprotocol/sdk`), run **stateless**: a fresh `McpServer` + transport is built per request, closed over the userId resolved from that request's token. `GET`/`DELETE /mcp` return 405 (no session/SSE stream in stateless mode).
 - **Auth**: `Authorization: Bearer <token>` — a Personal Access Token generated from the Profile page ("Connected agents" section, backed by `ApiToken`/`POST /api/tokens`). Not the browser's JWT cookie. See `backend/src/plugins/mcpAuth.ts` and `backend/src/lib/apiTokens.ts`.
 - **Tool handlers call the same service layer as the REST routes** (`backend/src/services/{workout,exercise,progress}Service.ts`) — one implementation of ownership checks and cascade deletes shared by both. Tools live in `backend/src/mcp/tools/`.
-- **Tools**: `list_workouts`, `get_workout`, `create_workout`, `update_workout`, `delete_workout`, `create_session`, `update_session`, `delete_session`, `create_block`, `add_superset_block`, `update_block`, `delete_block`, `create_item`, `update_item`, `delete_item`, `get_calendar`, `create_execution`, `start_execution`, `finish_execution`, `delete_execution`, `log_set_result`, `list_exercises`, `create_exercise`, `update_exercise`, `delete_exercise`, `get_history`, `list_tracked_exercises`, `get_exercise_progress`.
+- **Tools**: `list_workouts`, `get_workout`, `create_workout`, `update_workout`, `delete_workout`, `create_session`, `update_session`, `delete_session`, `create_block`, `add_superset_block`, `update_block`, `delete_block`, `create_item`, `update_item`, `delete_item`, `get_calendar`, `create_execution`, `start_execution`, `finish_execution`, `delete_execution`, `log_set_result`, `search_exercises`, `get_exercise`, `create_exercise`, `update_exercise`, `delete_exercise`, `get_history`, `list_tracked_exercises`, `get_exercise_progress`, `get_training_profile`, `update_training_profile`, `get_training_guidelines`, `get_training_signals`.
+- **`get_training_signals`** is the derivation layer over logged history (`backend/src/lib/trainingSignals.ts` + `trainingSignalsService.ts`) — stalls, regressions, e1RM trend, abandonment, muscle recency, session duration, observed rest intervals, derived adherence tier. Step 1 of `docs/workout-evolution.md`; it reads only data the app already collects and mutates nothing. Every derivation ships its own `caveats`, and the payload carries the §7 confounders in `interpretation` so a client cannot act on the numbers without them.
 - **Connect a client**, e.g.:
   ```bash
   claude mcp add --transport http mytraining http://localhost:3000/mcp --header "Authorization: Bearer <token>"
