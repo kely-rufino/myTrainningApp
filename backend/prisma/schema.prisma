@@ -38,11 +38,32 @@ model TrainingProfile {
   id              Int      @id @default(autoincrement())
   userId          Int      @unique
   experienceLevel Int? // 1–10 self-assessed
+  // Deprecated by primaryOutcome — read-only alias for one release so existing
+  // MCP clients keep working (r3-amendment §2.1). Writes go to primaryOutcome.
   goal            String?
-  equipment       String? // JSON array — same vocabulary as Exercise.equipment
+  // What the user is actually training for (PRIMARY_OUTCOMES). Split out of
+  // `goal`, which conflated outcome, modality and adherence state.
+  primaryOutcome    String?
+  secondaryOutcomes String? // JSON array — same vocabulary as primaryOutcome
+  // Equipment inventory. Schema 2 is { schema, items[] } with load data; bare
+  // JSON arrays are schema 1 and are upgraded on read (lib/equipmentInventory.ts).
+  equipment       String?
   spaceConstraint String? // largest footprint available (exerciseTaxonomy SPACE_FOOTPRINTS)
   daysPerWeek     Int?
+  // Target session length. Feeds planned-vs-actual duration and the volume
+  // budget solver, both of which need a number the app never stored before.
+  minutesPerSession Int?
   injuries        String? // JSON array — closed condition list (trainingVocab.ts)
+  // JSON array of { exerciseId, reason, addedAt } — reason from EXCLUSION_REASONS.
+  excludedExercises String?
+  // Manual override only. The tier is normally derived from execution history
+  // (get_training_signals); this column exists because a user who trains
+  // without logging is indistinguishable from one who doesn't train, and the
+  // tier gates plan validation (r3-amendment §4.13, §9). Null = use derived.
+  adherenceTier      String?
+  consecutiveWeeksOk Int? // cached derivation, refreshed from history
+  typicalSleepHours  Float?
+  lifeStressLevel    String? // LIFE_STRESS_LEVELS — caps intensity (§4.5)
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
