@@ -225,6 +225,13 @@ export async function workoutRoutes(fastify: FastifyInstance) {
     }
   )
 
+  // Last logged results per exercise from the most recent earlier execution
+  app.get(
+    '/api/executions/:id/previous-results',
+    { schema: { params: z.object({ id: z.coerce.number() }) } },
+    async (req) => workoutService.getPreviousResults(req.user.sub, req.params.id)
+  )
+
   // Upsert a single set result (reps/weight/duration) for a block item
   app.post(
     '/api/executions/:id/log',

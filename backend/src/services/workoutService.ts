@@ -411,6 +411,54 @@ export async function deleteExecution(userId: number, executionId: number) {
   await prisma.workoutExecution.delete({ where: { id: ex.id } })
 }
 
+// Last logged set results per exercise, taken from the most recent earlier
+// execution of the same user — keyed by exerciseId, sorted by set order
+export async function getPreviousResults(userId: number, executionId: number) {
+  const ex = await prisma.workoutExecution.findFirst({
+    where: { id: executionId, userId },
+    include: { session: { select: { blocks: { select: { exerciseId: true } } } } },
+  })
+  if (!ex) throw httpError(404, 'Not found')
+
+  const exerciseIds = [...new Set(ex.session?.blocks.map(b => b.exerciseId) ?? [])]
+  if (exerciseIds.length === 0) return {}
+
+  const rows = await prisma.workoutSessionBlockExecution.findMany({
+    where: {
+      workoutSessionBlockItem: { block: { exerciseId: { in: exerciseIds } } },
+      workoutExecution: {
+        userId,
+        OR: [{ date: { lt: ex.date } }, { date: ex.date, id: { lt: ex.id } }],
+      },
+    },
+    select: {
+      reps: true,
+      weight: true,
+      duration: true,
+      workoutExecutionId: true,
+      workoutSessionBlockItem: { select: { order: true, block: { select: { exerciseId: true } } } },
+    },
+    orderBy: [{ workoutExecution: { date: 'desc' } }, { workoutExecutionId: 'desc' }],
+  })
+
+  const result: Record<number, { order: number; reps: number | null; weight: number | null; duration: number | null }[]> = {}
+  const chosenExecution = new Map<number, number>()
+  for (const row of rows) {
+    const exerciseId = row.workoutSessionBlockItem.block.exerciseId
+    const chosen = chosenExecution.get(exerciseId)
+    if (chosen === undefined) chosenExecution.set(exerciseId, row.workoutExecutionId)
+    else if (chosen !== row.workoutExecutionId) continue
+    ;(result[exerciseId] ??= []).push({
+      order: row.workoutSessionBlockItem.order,
+      reps: row.reps,
+      weight: row.weight,
+      duration: row.duration,
+    })
+  }
+  for (const sets of Object.values(result)) sets.sort((a, b) => a.order - b.order)
+  return result
+}
+
 // Upsert a single set result (reps/weight/duration) for a block item
 export async function logSetResult(
   userId: number,
