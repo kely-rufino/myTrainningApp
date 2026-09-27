@@ -15,6 +15,15 @@ type BlockExecution = {
   duration: number | null
 }
 
+type PrevSet = {
+  order: number
+  reps: number | null
+  weight: number | null
+  duration: number | null
+}
+
+type PrevResults = Record<number, PrevSet[]>
+
 type CalendarExecution = {
   id: number
   date: string
@@ -76,12 +85,14 @@ function useElapsed(startedAt: string | null) {
 function SetLogRow({
   item,
   logged,
+  prev,
   executionId,
   isDuration,
   sessionStarted,
 }: {
   item: Block['items'][number]
   logged: BlockExecution | undefined
+  prev: PrevSet | undefined
   executionId: number
   isDuration: boolean
   sessionStarted: boolean
@@ -128,7 +139,7 @@ function SetLogRow({
       {isDuration ? (
         <input
           type="number"
-          placeholder={item.duration ? `${item.duration}s` : 'sec'}
+          placeholder={prev?.duration != null ? `${prev.duration}s` : item.duration ? `${item.duration}s` : 'sec'}
           defaultValue={logged?.duration ?? ''}
           onBlur={blurDuration}
           disabled={disabled}
@@ -138,7 +149,7 @@ function SetLogRow({
         <>
           <input
             type="number"
-            placeholder={item.reps ? String(item.reps) : 'reps'}
+            placeholder={prev?.reps != null ? String(prev.reps) : item.reps ? String(item.reps) : 'reps'}
             defaultValue={logged?.reps ?? ''}
             onBlur={blurReps}
             disabled={disabled}
@@ -147,7 +158,7 @@ function SetLogRow({
           <span className="text-xs text-gray-300 shrink-0">×</span>
           <input
             type="number"
-            placeholder={item.weight ? `${item.weight}` : 'kg'}
+            placeholder={prev?.weight != null ? `${prev.weight}` : item.weight ? `${item.weight}` : 'kg'}
             defaultValue={logged?.weight ?? ''}
             onBlur={blurWeight}
             disabled={disabled}
@@ -162,11 +173,13 @@ function SetLogRow({
 function BlockLog({
   block,
   loggedMap,
+  prevSets,
   executionId,
   sessionStarted,
 }: {
   block: Block
   loggedMap: Map<number, BlockExecution>
+  prevSets: PrevSet[] | undefined
   executionId: number
   sessionStarted: boolean
 }) {
@@ -217,6 +230,7 @@ function BlockLog({
               key={item.id}
               item={item}
               logged={loggedMap.get(item.id)}
+              prev={prevSets?.find(p => p.order === item.order)}
               executionId={executionId}
               isDuration={isDuration}
               sessionStarted={sessionStarted}
@@ -249,12 +263,14 @@ function isGroupComplete(blocks: Block[], loggedMap: Map<number, BlockExecution>
 function ExerciseGroupRow({
   blocks,
   loggedMap,
+  prevResults,
   executionId,
   initiallyOpen,
   sessionStarted,
 }: {
   blocks: Block[]
   loggedMap: Map<number, BlockExecution>
+  prevResults: PrevResults
   executionId: number
   initiallyOpen?: boolean
   sessionStarted: boolean
@@ -322,10 +338,10 @@ function ExerciseGroupRow({
                       <VideoButton onClick={() => setVideo({ url: b.exercise.videoUrl!, title: b.exercise.name })} />
                     )}
                   </div>
-                  <BlockLog block={b} loggedMap={loggedMap} executionId={executionId} sessionStarted={sessionStarted} />
+                  <BlockLog block={b} loggedMap={loggedMap} prevSets={prevResults[b.exercise.id]} executionId={executionId} sessionStarted={sessionStarted} />
                 </div>
               ))
-            : <BlockLog block={blocks[0]} loggedMap={loggedMap} executionId={executionId} sessionStarted={sessionStarted} />
+            : <BlockLog block={blocks[0]} loggedMap={loggedMap} prevSets={prevResults[blocks[0].exercise.id]} executionId={executionId} sessionStarted={sessionStarted} />
           }
         </div>
       )}
@@ -554,6 +570,13 @@ export default function CalendarPage() {
   const selectedKey = toDateString(selectedDate)
   const selectedExecution = byDate.get(selectedKey) ?? null
 
+  // Last logged values per exercise, from the most recent earlier execution
+  const { data: prevResults = {} } = useQuery<PrevResults>({
+    queryKey: ['prev-results', selectedExecution?.id],
+    queryFn: () => apiFetch(`/executions/${selectedExecution!.id}/previous-results`),
+    enabled: selectedExecution !== null,
+  })
+
   // Month/year label — show the month of the majority of the week
   const midWeek = weekDates[3]
   const monthLabel = `${MONTH_LABELS[midWeek.getMonth()]}'${String(midWeek.getFullYear()).slice(2)}`
@@ -633,7 +656,8 @@ export default function CalendarPage() {
             const key = toDateString(d)
             const isToday = isSameDay(d, today)
             const isSelected = isSameDay(d, selectedDate)
-            const hasExecution = byDate.has(key)
+            const execution = byDate.get(key)
+            const isCompleted = !!execution?.finishedAt
 
             return (
               <button
@@ -660,8 +684,10 @@ export default function CalendarPage() {
                 {/* Dot indicator */}
                 <span
                   className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    hasExecution
-                      ? isSelected ? 'bg-white' : 'bg-blue-400'
+                    execution
+                      ? isCompleted
+                        ? 'bg-green-400'
+                        : isSelected ? 'bg-white' : 'bg-blue-400'
                       : 'bg-transparent'
                   }`}
                 />
@@ -730,6 +756,7 @@ export default function CalendarPage() {
                     key={group[0].id}
                     blocks={group}
                     loggedMap={loggedMap}
+                    prevResults={prevResults}
                     executionId={selectedExecution!.id}
                     initiallyOpen={!!selectedExecution.startedAt}
                     sessionStarted={!!selectedExecution.startedAt}
