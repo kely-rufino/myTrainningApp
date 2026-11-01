@@ -46,3 +46,4 @@ coverage/
 # SQLite test/scratch databases
 backend/test.db*
 backend/prisma/dev.db
+backend/dev.db
