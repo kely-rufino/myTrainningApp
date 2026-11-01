@@ -22,7 +22,8 @@ export function registerExerciseTools(server: McpServer, _userId: number) {
     {
       title: 'Search exercises',
       description:
-        'Search the curated exercise library with filters. Always query with filters ' +
+        'Search the exercise library (curated and user/agent-created) with filters. ' +
+        'Always query with filters ' +
         '(equipment, movementPattern, primaryMuscle, …) instead of paging through everything — ' +
         'results are compact; call get_exercise for full instructions. ' +
         `Equipment tags: ${EQUIPMENT.join(', ')}. Movement patterns: ${MOVEMENT_PATTERNS.join(', ')}.`,
@@ -33,7 +34,7 @@ export function registerExerciseTools(server: McpServer, _userId: number) {
         primaryMuscle: muscleSchema.optional(),
         difficulty: difficultySchema.optional(),
         spaceFootprint: spaceFootprintSchema.optional(),
-        includeUncurated: z.boolean().optional().describe('Include unvetted user/agent-created exercises (default false)'),
+        includeUncurated: z.boolean().optional().describe('Include unvetted user/agent-created exercises (default true). Pass false for vetted library rows only.'),
         limit: z.number().int().positive().max(100).optional(),
         offset: z.number().int().nonnegative().optional(),
       },

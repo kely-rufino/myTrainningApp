@@ -64,7 +64,7 @@ export type SearchParams = {
   primaryMuscle?: string
   difficulty?: string
   spaceFootprint?: string
-  includeUncurated?: boolean
+  includeUncurated?: boolean // default true — see searchExercises
   limit?: number
   offset?: number
 }
@@ -77,12 +77,16 @@ export async function searchExercises(params: SearchParams = {}) {
     primaryMuscle,
     difficulty,
     spaceFootprint,
-    includeUncurated = false,
+    includeUncurated = true,
     limit = 50,
     offset = 0,
   } = params
 
   const where = {
+    // Search spans the whole library by default. Curation is a maintainer
+    // action that has not run over the seeded library yet, so every row is
+    // still isCurated=false — defaulting to curated-only made every search
+    // return total: 0. Pass includeUncurated: false to opt into vetted rows only.
     ...(includeUncurated ? {} : { isCurated: true }),
     ...(movementPattern && { movementPattern }),
     ...(primaryMuscle && { primaryMuscle }),

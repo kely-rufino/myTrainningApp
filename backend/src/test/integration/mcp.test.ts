@@ -120,18 +120,26 @@ describe('exercise tools — taxonomy and curation', () => {
     expect(exercise.source).toBe('agent')
     expect(exercise.equipment).toEqual(['bands'])
 
-    // Hidden from curated-only search (the default) …
-    const curatedOnly = await client.callTool({
+    // Found by the default search, which spans the whole library …
+    const byName = await client.callTool({
       name: 'search_exercises',
       arguments: { query: 'MCP Banded Row' },
+    })
+    const byNameResult = JSON.parse((byName.content as Array<{ text: string }>)[0].text)
+    expect(byNameResult.items.some((e: { id: number }) => e.id === exercise.id)).toBe(true)
+
+    // … and hidden only when the caller explicitly asks for curated rows.
+    const curatedOnly = await client.callTool({
+      name: 'search_exercises',
+      arguments: { query: 'MCP Banded Row', includeUncurated: false },
     })
     const curatedResult = JSON.parse((curatedOnly.content as Array<{ text: string }>)[0].text)
     expect(curatedResult.total).toBe(0)
 
-    // … visible when uncurated rows are included, and filterable.
+    // Filters still apply on the default search.
     const withUncurated = await client.callTool({
       name: 'search_exercises',
-      arguments: { equipment: ['bands'], movementPattern: 'horizontal_pull', includeUncurated: true },
+      arguments: { equipment: ['bands'], movementPattern: 'horizontal_pull' },
     })
     const searchResult = JSON.parse((withUncurated.content as Array<{ text: string }>)[0].text)
     expect(searchResult.items.some((e: { id: number }) => e.id === exercise.id)).toBe(true)
